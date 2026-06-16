@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+    <munit:config name="post-materials-recommendations-test-suite.xml"/>
+
+    <!-- ==================== Test 1: Successful Response - httpStatus is 200 ==================== -->
+    <munit:test name="post-materials-recommendations-success-200-test"
+                description="Verify sub-flow calls PRC API, maps response, and explicitly sets httpStatus to 200"
+                doc:name="Post Materials Recommendations Success 200 Test"
+                doc:description="Validates that the sub-flow sets httpStatus=200 on successful completion">
+
+        <munit:behavior>
+            <munit:set-event doc:name="Set Initial Event"
+                             doc:description="Sets the initial payload using a realistic work order request body">
+                <munit:payload value='#[{
+      Service_Call_ID: "250101-0125",
+      Service_Description: "LK CHECK &amp; EQUIPMENT SURVEY",
+      ProblemDesc: "Third party successfully accepted this PO",
+      CUSTNMBR: "TRADERJOE",
+      ADRSCODE: "TRAD153",
+      Divisions: "SAL-TM",
+      app_notes: [
+        {
+          Service_Call_Id: "250101-0125",
+          ApptNumber: "0001",
+          SummaryNotes: "Arrived on site checked in with manager told them we were here to do the leak check pm filled out all paperwork no alarms at this time.",
+          OnsiteStartTime: "2025-01-08 10:30:00.000",
+          OnsiteStopTime: "2025-01-08 13:45:00.45",
+          Status: "Complete",
+          FollowupReason: ""
+        },
+        {
+          Service_Call_Id: "250101-0125",
+          ApptNumber: "0002",
+          SummaryNotes: "ARRIVED AND CHECKED IN. CONTINUED WORKING ON PM. INCOMPLETE",
+          OnsiteStartTime: "2025-01-14 09:15:00.000",
+          OnsiteStopTime: "2025-01-14 14:30:00.30",
+          Status: "FOLLOWUP",
+          FollowupReason: "Labor Only"
+        }
+      ],
+      order_materials: [
+        {
+          Service_Call_Id: "250101-0125",
+          ITEMNMBR: "",
+          ITEMDESC: "CLEAN MATERIALS,RAGS,MISC",
+          TRXQTY: "1.00000",
+          Billing_Amount: "12.00000",
+          ItemCategory: ""
+        },
+        {
+          Service_Call_Id: "250101-0125",
+          ITEMNMBR: "",
+          ITEMDESC: "LEAK DETECT,REFRIG SENSOR",
+          TRXQTY: "1.00000",
+          Billing_Amount: "8.00000",
+          ItemCategory: ""
+        }
+      ]
+    }]'/>
+            </munit:set-event>
+
+            <munit-tools:mock-when processor="flow-ref"
+                                   doc:name="Mock PRC API Request Sub-Flow"
+                                   doc:description="Mocks the PRC API request sub-flow to return a canned recommendations response">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="cs-material-recommendation-prc-api-request-subflow"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return doc:name="Return Mock Recommendations"
+                                         doc:description="Returns a mocked material recommendations response payload">
+                    <munit-tools:payload mediaType="application/java"
+                                         value='#[{
+      workOrderId: "WO-1001",
+      recommendations: [
+        {
+          materialId: "MAT-001",
+          materialName: "Seal Kit",
+          quantity: 2,
+          unit: "EA",
+          confidence: 0.92,
+          reason: "Common fix for leak"
+        }
+      ]
+    }]'/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+
+        <munit:execution>
+            <flow-ref name="post-materials-recommendations-subflow"
+                      doc:name="Execute Post Materials Recommendations Sub-Flow"
+                      doc:description="Invokes the implementation sub-flow under test"/>
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-equals actual="#[vars.httpStatus]"
+                                       expected="200"
+                                       doc:name="Assert HTTP Status 200"
+                                       doc:description="Verifies httpStatus is explicitly set to 200 OK, not the APIKit default 201"/>
+            <munit-tools:assert-that expression="#[payload]"
+                                     is="#[MunitTools::notNullValue()]"
+                                     doc:name="Assert Payload Not Null"
+                                     doc:description="Ensures the flow response payload is not null"/>
+        </munit:validation>
+    </munit:test>
+
+    <!-- ==================== Test 2: PRC API Error Propagates ==================== -->
+    <munit:test name="post-materials-recommendations-error-propagation-test"
+                description="Verify that errors from the PRC API request sub-flow propagate out of the sub-flow"
+                doc:name="Post Materials Recommendations Error Propagation Test"
+                doc:description="Validates that connectivity errors from the PRC API sub-flow are propagated to the caller">
+
+        <munit:behavior>
+            <munit:set-event doc:name="Set Initial Event"
+                             doc:description="Initializes the Mule event with a realistic work order payload">
+                <munit:payload value='#[{
+      Service_Call_ID: "250101-0125",
+      Service_Description: "LK CHECK &amp; EQUIPMENT SURVEY",
+      ProblemDesc: "Third party successfully accepted this PO",
+      CUSTNMBR: "TRADERJOE",
+      ADRSCODE: "TRAD153",
+      Divisions: "SAL-TM",
+      app_notes: [
+        {
+          Service_Call_Id: "250101-0125",
+          ApptNumber: "0001",
+          SummaryNotes: "Arrived on site. Leak check in progress.",
+          OnsiteStartTime: "2025-01-08 10:30:00.000",
+          OnsiteStopTime: "2025-01-08 13:45:00.45",
+          Status: "Complete",
+          FollowupReason: ""
+        }
+      ],
+      order_materials: [
+        {
+          Service_Call_Id: "250101-0125",
+          ITEMNMBR: "",
+          ITEMDESC: "CLEAN MATERIALS,RAGS,MISC",
+          TRXQTY: "1.00000",
+          Billing_Amount: "12.00000",
+          ItemCategory: ""
+        }
+      ]
+    }]'/>
+            </munit:set-event>
+
+            <munit-tools:mock-when processor="flow-ref"
+                                   doc:name="Mock PRC API Sub-Flow to Throw Error"
+                                   doc:description="Mocks the PRC API request sub-flow to simulate a connectivity failure">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="cs-material-recommendation-prc-api-request-subflow"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return doc:name="Throw Connectivity Error"
+                                         doc:description="Simulates an HTTP connectivity error from the PRC API">
+                    <munit-tools:error typeId="MULE:CONNECTIVITY"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+
+        <munit:execution>
+            <try>
+                <flow-ref name="post-materials-recommendations-subflow"
+                          doc:name="Execute Post Materials Recommendations Sub-Flow"
+                          doc:description="Invokes the sub-flow expecting an error to be propagated"/>
+                <error-handler>
+                    <on-error-continue type="ANY">
+                        <set-variable variableName="caughtErrorType"
+                                      value="#[error.errorType.identifier]"
+                                      doc:name="Capture Error Type"/>
+                    </on-error-continue>
+                </error-handler>
+            </try>
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that expression="#[vars.caughtErrorType]"
+                                     is="#[MunitTools::notNullValue()]"
+                                     doc:name="Assert Error Was Propagated"
+                                     doc:description="Verifies that the connectivity error was propagated from the sub-flow"/>
+        </munit:validation>
+    </munit:test>
+
+</mule>

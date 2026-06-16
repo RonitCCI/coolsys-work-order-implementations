@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+    <munit:config name="http-request-test-suite.xml"/>
+
+    <!-- ==================== Test 1: Non-Retryable 401 → APP:NON_RETRYABLE ==================== -->
+    <!--
+        Validates that a non-retryable HTTP error (401 Unauthorized) is NOT retried by
+        until-successful, and instead surfaces immediately as APP:NON_RETRYABLE.
+    -->
+    <munit:test name="cs-material-recommendation-prc-api-request-subflow_nonRetryable401Error"
+                description="Verify HTTP:UNAUTHORIZED (401) is not retried and raises APP:NON_RETRYABLE"
+                doc:name="Non-Retryable 401 Raises APP:NON_RETRYABLE Test"
+                doc:description="Validates that HTTP 401 triggers APP:NON_RETRYABLE without performing retries">
+
+        <munit:behavior>
+            <munit:set-event doc:name="Set Initial Event"
+                             doc:description="Initializes httpOperation and correlationId variables for the sub-flow">
+                <munit:variables>
+                    <munit:variable key="httpOperation"
+                                    value='#[{method: "POST", path: "/materials/recommendations", headers: {"Content-Type": "application/json"}}]'/>
+                    <munit:variable key="correlationId" value="test-corr-id-401"/>
+                </munit:variables>
+            </munit:set-event>
+
+            <munit-tools:mock-when processor="http:request"
+                                   doc:name="Mock HTTP:UNAUTHORIZED Error"
+                                   doc:description="Mocks the PRC API HTTP request to throw HTTP:UNAUTHORIZED (401)">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="material-recommendation-request-config"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return doc:name="Throw HTTP:UNAUTHORIZED"
+                                         doc:description="Simulates a 401 Unauthorized error from the PRC API">
+                    <munit-tools:error typeId="HTTP:UNAUTHORIZED"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+
+        <munit:execution>
+            <try doc:name="Capture Raised Error"
+                 doc:description="Wraps sub-flow execution to capture the raised APP:NON_RETRYABLE error">
+                <flow-ref name="cs-material-recommendation-prc-api-request-subflow"
+                          doc:name="Execute HTTP Request Sub-Flow"
+                          doc:description="Executes the common HTTP request sub-flow under test"/>
+                <error-handler>
+                    <on-error-continue type="APP:NON_RETRYABLE"
+                                       doc:name="Capture APP:NON_RETRYABLE"
+                                       doc:description="Catches the APP:NON_RETRYABLE error raised by the sub-flow">
+                        <set-variable variableName="caughtErrorType"
+                                      value="#[error.errorType.identifier]"
+                                      doc:name="Store Caught Error Type"/>
+                    </on-error-continue>
+                </error-handler>
+            </try>
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-equals actual="#[vars.caughtErrorType]"
+                                       expected="APP:NON_RETRYABLE"
+                                       doc:name="Assert APP:NON_RETRYABLE Raised"
+                                       doc:description="Verifies that the error type is APP:NON_RETRYABLE — non-retryable errors must not be retried"/>
+        </munit:validation>
+    </munit:test>
+
+    <!-- ==================== Test 2: Successful 200 — no error raised ==================== -->
+    <!--
+        Validates that a successful 200 response from the PRC API completes the sub-flow
+        without setting nonRetryableError and without raising any error.
+    -->
+    <munit:test name="cs-material-recommendation-prc-api-request-subflow_success200"
+                description="Verify HTTP 200 completes successfully and vars.nonRetryableError remains null"
+                doc:name="Success 200 No Non-Retryable Error Test"
+                doc:description="Validates that a 200 response completes the sub-flow without raising APP:NON_RETRYABLE">
+
+        <munit:behavior>
+            <munit:set-event doc:name="Set Initial Event"
+                             doc:description="Initializes httpOperation and correlationId variables for the sub-flow">
+                <munit:variables>
+                    <munit:variable key="httpOperation"
+                                    value='#[{method: "POST", path: "/materials/recommendations", headers: {"Content-Type": "application/json"}}]'/>
+                    <munit:variable key="correlationId" value="test-corr-id-200"/>
+                </munit:variables>
+            </munit:set-event>
+
+            <munit-tools:mock-when processor="http:request"
+                                   doc:name="Mock Successful HTTP 200 Response"
+                                   doc:description="Mocks the PRC API HTTP request to return a 200 success response">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="material-recommendation-request-config"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return doc:name="Return 200 Success Response"
+                                         doc:description="Returns a successful recommendations payload">
+                    <munit-tools:payload mediaType="application/java"
+                                         value='#[{
+      workOrderId: "WO-1001",
+      recommendations: [
+        {materialId: "MAT-001", materialName: "Seal Kit", quantity: 2, unit: "EA", confidence: 0.92, reason: "Common fix for leak"}
+      ]
+    }]'/>
+                    <munit-tools:attributes value='#[{statusCode: 200}]'/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+
+        <munit:execution>
+            <flow-ref name="cs-material-recommendation-prc-api-request-subflow"
+                      doc:name="Execute HTTP Request Sub-Flow"
+                      doc:description="Invokes the common HTTP request sub-flow expecting a clean success"/>
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload]"
+                                     is="#[MunitTools::notNullValue()]"
+                                     doc:name="Assert Payload Not Null"
+                                     doc:description="Ensures the response payload is not null after sub-flow execution"/>
+            <munit-tools:assert-that expression="#[vars.nonRetryableError]"
+                                     is="#[MunitTools::nullValue()]"
+                                     doc:name="Assert No Non-Retryable Error"
+                                     doc:description="Verifies nonRetryableError was NOT set — no non-retryable failure occurred"/>
+        </munit:validation>
+    </munit:test>
+
+</mule>

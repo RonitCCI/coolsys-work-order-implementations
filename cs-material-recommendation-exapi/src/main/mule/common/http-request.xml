@@ -13,6 +13,10 @@
           - vars.httpOperation.path    : Resource path (e.g. /materials/recommendations)
           - vars.httpOperation.headers : Map of additional request headers
           - vars.requestBody           : The request body payload
+
+        Retry strategy:
+          - Retryable (transient) errors: HTTP:TOO_MANY_REQUESTS (429), HTTP:TIMEOUT, HTTP:CONNECTIVITY
+          - Non-retryable errors: all other failures (401, 403, 500, etc.) are raised immediately as APP:NON_RETRYABLE
     -->
     <sub-flow name="cs-material-recommendation-prc-api-request-subflow"
         doc:id="cs-mat-rec-common-http-subflow">
@@ -21,20 +25,55 @@
             message="#[output json --- '[cs-material-recommendation-exapi] Before calling Material Recommendation PRC API | Method: ' ++ vars.httpOperation.method ++ ' | Path: ' ++ vars.httpOperation.path]"/>
 
         <until-successful maxRetries="#[Mule::p('untilSuccess.retries')]"
-            doc:name="Retry on Failure"
+            doc:name="Retry on Transient Errors Only"
             doc:id="cs-mat-rec-until-successful"
             millisBetweenRetries="#[Mule::p('untilSuccess.frequency')]">
-            <http:request method="#[vars.httpOperation.method]"
-                doc:name="Call Material Recommendation PRC API"
-                doc:id="cs-mat-rec-http-request"
-                config-ref="material-recommendation-request-config"
-                path="#[vars.httpOperation.path]"
-                sendCorrelationId="ALWAYS"
-                correlationId="#[vars.correlationId]"
-                responseTimeout="#[Mule::p('timeout.response')]" sendBodyMode="AUTO">
-                <http:headers><![CDATA[#[vars.httpOperation.headers default {}]]]></http:headers>
-            </http:request>
+
+            <try doc:name="Classify and Handle HTTP Errors">
+
+                <http:request method="#[vars.httpOperation.method]"
+                    doc:name="Call Material Recommendation PRC API"
+                    doc:id="cs-mat-rec-http-request"
+                    config-ref="material-recommendation-request-config"
+                    path="#[vars.httpOperation.path]"
+                    sendCorrelationId="ALWAYS"
+                    correlationId="#[vars.correlationId]"
+                    responseTimeout="#[Mule::p('timeout.response')]" sendBodyMode="AUTO">
+                    <http:headers><![CDATA[#[vars.httpOperation.headers default {}]]]></http:headers>
+                    <http:response-validator>
+                        <http:success-status-code-validator values="200..299"/>
+                    </http:response-validator>
+                </http:request>
+
+                <error-handler>
+                    <!-- Transient errors: re-propagate so until-successful retries -->
+                    <on-error-propagate type="HTTP:TOO_MANY_REQUESTS, HTTP:TIMEOUT, HTTP:CONNECTIVITY"
+                        doc:name="Propagate Transient Error - Allow Retry">
+                    </on-error-propagate>
+
+                    <!-- Non-retryable errors: absorb and flag to stop retrying -->
+                    <on-error-continue type="ANY"
+                        doc:name="Capture Non-Retryable Error - Stop Retry">
+                        <set-variable variableName="nonRetryableError"
+                            value="#[error.errorType.identifier]"
+                            doc:name="Store Non-Retryable Error Type"/>
+                        <set-variable variableName="nonRetryableErrorDescription"
+                            value="#[error.description]"
+                            doc:name="Store Non-Retryable Error Description"/>
+                    </on-error-continue>
+                </error-handler>
+
+            </try>
         </until-successful>
+
+        <!-- Immediately raise error for non-retryable failures -->
+        <choice doc:name="Check for Non-Retryable Error">
+            <when expression="#[vars.nonRetryableError != null]" doc:name="Non-Retryable Error Occurred">
+                <raise-error type="APP:NON_RETRYABLE"
+                    description="#['PRC API call failed with non-retryable error: ' ++ (vars.nonRetryableError default '') ++ ' - ' ++ (vars.nonRetryableErrorDescription default '')]"
+                    doc:name="Raise Non-Retryable Error"/>
+            </when>
+        </choice>
 
         <logger level="INFO" doc:name="LOG: After PRC API Request"
             message="#[output json&#10;---&#10;'[cs-material-recommendation-exapi] After calling Material Recommendation PRC API | Status: ' ++ (attributes.statusCode as String default 'unknown')]"/>

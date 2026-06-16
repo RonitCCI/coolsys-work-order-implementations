@@ -35,6 +35,9 @@ payload]]></ee:set-payload>
         <!-- Call the common HTTP request sub-flow -->
         <flow-ref name="cs-material-recommendation-prc-api-request-subflow" doc:name="cs-material-recommendation-prc-api-request-subflow"/>
 
+        <!-- Explicitly set 200 OK to override the RAML-default 201 that APIKit assigns to POST operations -->
+        <set-variable variableName="httpStatus" value="200" doc:name="Set HTTP Status 200" doc:description="Explicitly sets HTTP response status to 200 OK on successful completion"/>
+
         <logger level="INFO" doc:name="LOG: End - POST /materials/recommendations"
             message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  "message": "post-materials-recommendations-subflow has completed",&#10;  "correlationId": attributes.correlationId,&#10;  "datetime": now()&#10;}]'/>
     </sub-flow>

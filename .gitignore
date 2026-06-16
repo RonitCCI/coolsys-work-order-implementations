@@ -1,0 +1,25 @@
+# MuleSoft / Anypoint Studio
+.mule/
+.tooling/
+.tooling-apps-cache/
+.tooling-project
+.metadata/
+velocity.log
+
+# Maven
+target/
+
+# IDE Settings
+.settings/
+.classpath
+.project
+.vscode/
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# OS files
+.DS_Store
+Thumbs.db

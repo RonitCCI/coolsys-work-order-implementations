@@ -112,7 +112,7 @@ output application/json
     <!-- ==================== API Console Flow ==================== -->
 
     <!-- ==================== APIkit Route: POST /materials/recommendations ==================== -->
-    <flow name="post:\materials\recommendations:application\json:cs-material-recommendation-exapi-config">
+    <flow name="post:\materials\recommendations:application\json:cs-material-recommendation-exapi-config" doc:id="aa76c252-83a7-4ef2-a380-1a4c59e77dd5">
         <flow-ref doc:name="post-materials-recommendations-subflow" name="post-materials-recommendations-subflow"/>
     </flow>
 
