@@ -1,0 +1,724 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: generate-embeddings-subflow
+	     Unchanged — calls Bedrock to generate embedding vector
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="generate-embeddings-subflow" doc:id="7aa793ad-da58-4fa5-9c73-c095d42f9cf6">
+		<logger level="INFO" doc:name="START" doc:id="18c74dd5-f0ec-4e31-b4f5-f7d5ce2dce28"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+		<set-payload value="#[%dw 2.0
+output application/json
+
+var data = [payload.serviceDescription] ++ [payload.problemDesc]
+++ payload.appNotes.SummaryNotes
+---
+write(data, 'text/json')]" doc:name="Embedding Request" doc:id="71b8241e-7717-4e61-8f6d-c53beaa5fde7" />
+		<flow-ref doc:name="common-bedrock-operations-sub-flow" doc:id="9eb7e080-4755-4108-ba73-9128e74bd03b" name="common-bedrock-operations-sub-flow"/>
+		<logger level="INFO" doc:name="END" doc:id="06be6a0a-b4c0-4000-97a2-b36ee0b8b772"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: cs-material-recommendation-subflow  (MAIN ORCHESTRATOR)
+	     CHANGE: reordered flow-refs — find-similar-calls MUST run first
+	             so materials-from-similar-calls can use similarCallIds
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="cs-material-recommendation-subflow" doc:id="3663ea1d-09ae-4e54-b4e1-70512e5bba72">
+		<logger level="INFO" doc:name="START" doc:id="ccd28675-2aef-47bc-9257-33324f101850"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<!-- Parse and normalise the incoming request -->
+		<ee:transform doc:name="Refined Payload" doc:id="aa296c91-1d1b-4187-9353-b5cb9be184e9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+var req = if (payload.Request != null) payload.Request else payload
+---
+{
+    serviceCallId:      req.Service_Call_ID default req.service_call_id,
+    serviceDescription: req.Service_Description default "",
+    problemDesc:        req.ProblemDesc default "",
+    custnmbr:           req.CUSTNMBR default "",
+    adrscode:           req.ADRSCODE default "",
+    divisions:          req.Divisions default "",
+
+    summaryNotes: (req.app_notes default [])
+        filter ($.SummaryNotes != null and $.SummaryNotes != "\u0000" and $.SummaryNotes != "")
+        map $.SummaryNotes
+        joinBy " ",
+
+    existingDescs: (req.order_materials default [])
+        filter ($.ITEMDESC != null)
+        map lower(trim($.ITEMDESC)),
+
+    appNotes:       req.app_notes default [],
+    orderMaterials: req.order_materials default []
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="refinedPayload"><![CDATA[%dw 2.0
+output application/json
+var req = if (payload.Request != null) payload.Request else payload
+---
+{
+    serviceCallId:      req.Service_Call_ID default req.service_call_id,
+    serviceDescription: req.Service_Description default "",
+    problemDesc:        req.ProblemDesc default "",
+    custnmbr:           req.CUSTNMBR default "",
+    adrscode:           req.ADRSCODE default "",
+    divisions:          req.Divisions default "",
+
+    summaryNotes: (req.app_notes default [])
+        filter ($.SummaryNotes != null and $.SummaryNotes != "\u0000" and $.SummaryNotes != "")
+        map $.SummaryNotes
+        joinBy " ",
+
+    existingDescs: (req.order_materials default [])
+        filter ($.ITEMDESC != null)
+        map lower(trim($.ITEMDESC)),
+
+    appNotes:       req.app_notes default [],
+    orderMaterials: req.order_materials default []
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<validation:is-not-null doc:name="Service Call Id" doc:id="711ef123-c247-4579-9a70-d5a5bfeee6f4"
+			config-ref="Validation_Config" value="#[payload.serviceCallId]" />
+
+		<!-- Generate embedding from service description + problem desc + notes -->
+		<flow-ref doc:name="generate-embeddings-sub-flow" doc:id="1ec9e8ff-675b-4bfc-a47d-0ea2b6ae5f63"
+			name="generate-embeddings-subflow" targetValue="#[payload.embedding]" />
+
+		<!-- Extract embedding and exclusion list into variables -->
+		<ee:transform doc:name="var: itemDescriptions, generatedEmbedding" doc:id="ce94466b-b622-4e5b-bdd4-570d67826be6">
+			<ee:message></ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="itemDescriptions"><![CDATA[%dw 2.0
+output application/json
+var om = vars.refinedPayload.orderMaterials default []
+---
+(om filter ((item, index) -> item.ITEMDESC != null and trim(item.ITEMDESC) != ""))
+    map ((item2, index) -> upper(trim(item2.ITEMDESC)))]]></ee:set-variable>
+
+				<ee:set-variable variableName="generatedEmbedding"><![CDATA[%dw 2.0
+output application/json
+---
+payload.embedding]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- STEP 1: Find similar historical calls FIRST (needed by next step) -->
+		<flow-ref doc:name="find-similar-calls-subflow" doc:id="8161a433-be83-4bef-b77a-90b5f41482fe"
+			name="find-similar-calls-subflow" />
+
+		<!-- STEP 2: Get materials those similar calls actually used (PRIMARY candidate source) -->
+		<flow-ref doc:name="get-materials-from-similar-calls-subflow" doc:id="550b8cd5-8ad3-470d-a815-0eab1bbad802"
+			name="get-materials-from-similar-calls-subflow"/>
+
+		<!-- STEP 3: Score candidates — get vector_sim for each candidate material -->
+		<flow-ref doc:name="score-candidates-subflow" doc:id="8164422b-aeb6-4a67-a197-953cf774fb61"
+			name="score-candidates-subflow" />
+
+		<!-- STEP 4: Get max usage_count for pop_score normalisation -->
+		<flow-ref doc:name="get-max-usage-subflow" doc:id="1f1120d7-2771-4049-acab-41a9a9589e65"
+			name="get-max-usage-subflow" />
+
+		<!-- STEP 5: Inject universal Tier-1 items (CLEAN MATERIALS, FREIGHT etc.) -->
+		<flow-ref doc:name="inject-universal-materials-subflow" doc:id="69c5bb5f-34a5-477d-b09a-87f67e4140f2"
+			name="inject-universal-materials-subflow" />
+
+		<!-- STEP 6: Merge all signals and rank -->
+		<flow-ref doc:name="merge-and-rank-subflow" doc:id="aa2e302f-57dc-484c-bbe5-be95daf84aa2"
+			name="merge-and-rank-subflow" />
+
+		<!-- Build final API response -->
+		<ee:transform doc:name="Build Response" doc:id="5c3a022d-de13-4cd9-be97-ad0e04f97ed2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var latencyMs = (now() as Number {unit: 'milliseconds'}) - vars.timestamp
+var ranked    = vars.recommendations default []
+var maxScore  = if (sizeOf(ranked) > 0) ranked[0].final_score else 1.0
+var MIN_SCORE = 0.10
+
+var suggested = ranked
+  map ((rec) -> {
+    sim: if (maxScore > 0) (rec.final_score / maxScore) else 0,
+    rec: rec
+  })
+  filter ((item) -> item.sim >= MIN_SCORE)
+  map ((item) -> {
+    similarity_score: round(item.sim * 10000) / 10000,
+    material_details: {
+      ITEMNMBR: item.rec.itemnmbr,
+      ITEMDESC: item.rec.itemdesc,
+      CATEGORY: item.rec.item_category,
+      REASONS:  (item.rec.reasons default [])[0]
+    }
+  })
+---
+{
+    Service_Call_ID: vars.refinedPayload.serviceCallId,
+    search_metadata: {
+      query_vector_source:             vars.refinedPayload.serviceDescription,
+      total_suggestions_found:         sizeOf(suggested),
+      search_latency_ms:               latencyMs as Number,
+      similar_calls_used:              sizeOf(vars.similarCallIds default []),
+      candidates_from_similar_calls:   sizeOf(vars.materials default []),
+      universal_items_injected:        sizeOf(vars.universalMaterials default [])
+    },
+    suggested_materials: suggested
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="END" doc:id="cc88c047-a57e-471e-ac76-02e918b727c0"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: find-similar-calls-subflow
+	     CHANGE: limit increased from 15 → 50 for more historical signal
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="find-similar-calls-subflow" doc:id="8e2cd266-f9af-475f-a58a-05ccb3264d31">
+		<logger level="INFO" doc:name="START" doc:id="025b2e3e-a43f-4a20-ab00-fc27f08e1b40"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<choice doc:name="Skip if No Embedding" doc:id="f7a5716a-856e-4884-a565-05293e2ab354">
+			<when expression="#[!isEmpty(vars.generatedEmbedding)]">
+				<ee:transform doc:name="Build Similar Calls Query" doc:id="9eea12c4-ed69-4453-9c66-989c69af2603">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+var embedding       = (vars.generatedEmbedding joinBy ",")
+var service_call_id = vars.refinedPayload.serviceCallId
+var limit           = 50
+---
+{
+    "query": "SELECT service_call_id FROM service_calls_test WHERE service_call_id != '$(service_call_id)' AND search_embedding IS NOT NULL ORDER BY search_embedding <=> '[$(embedding)]'::vector LIMIT $(limit)"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: "POST",
+    host: Mule::p('sys.db.api.host'),
+    basePath: Mule::p('sys.db.api.basepath'),
+    path: Mule::p('sys.db.api.path'),
+    responseTimeout: "600000",
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<flow-ref doc:name="common-http-request-sub-flow" doc:id="32ef4c2a-df83-426d-b60c-3d4437709ccc"
+					name="common-http-request-sub-flow" />
+
+				<ee:transform doc:name="var: similarCallIds" doc:id="52e8adce-37d6-449f-9380-dc92f3477d6b">
+					<ee:variables>
+						<ee:set-variable variableName="similarCallIds"><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> item.service_call_id)]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<set-variable value="#[[]]" doc:name="Empty Similar Calls — No Embedding"
+					doc:id="1ee51ef7-23b0-489c-8843-6d834a998634" variableName="similarCallIds" />
+			</otherwise>
+		</choice>
+
+		<logger level="INFO" doc:name="END" doc:id="592225ae-88c3-4f1a-a5ee-98d8cacc33fe"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: get-materials-from-similar-calls-subflow  (NEW — replaces vector-search-materials)
+	     Fetches materials actually ordered in similar calls.
+	     freq_score is computed in SQL: hit_count / total_similar_calls
+	     Only real catalog items returned (material_tier <= 4)
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="get-materials-from-similar-calls-subflow" doc:id="ee5745ec-2fce-4a53-a42b-d6231370e322">
+		<logger level="INFO" doc:name="START" doc:id="c02ac7d7-eb24-4107-ab60-d5bef06b41d4"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<choice doc:name="Skip if No Similar Calls" doc:id="d2e3938a-667a-4a70-87d3-7f8ccab87205">
+			<when expression="#[!isEmpty(vars.similarCallIds default [])]">
+				<ee:transform doc:name="Build Materials From Similar Calls Query" doc:id="20d5571e-bf24-40ee-85e4-a61619496e2e">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+var callIds = (vars.similarCallIds map ("'" ++ $ ++ "'")) joinBy ', '
+var total   = sizeOf(vars.similarCallIds default [])
+var limit   = 100
+---
+{
+    "query": "SELECT m.material_id::text, m.itemnmbr, m.itemdesc, m.item_category, m.usage_count, m.material_tier, COUNT(DISTINCT sit.service_call_id) AS hit_count, COUNT(DISTINCT sit.service_call_id)::float / $(total) AS freq_score FROM hvac_service_items_test sit JOIN hvac_materials m ON m.material_id = sit.material_id WHERE sit.service_call_id = ANY(ARRAY[$(callIds)]) AND m.is_active = true AND m.material_tier <= 4 GROUP BY m.material_id, m.itemnmbr, m.itemdesc, m.item_category, m.usage_count, m.material_tier ORDER BY hit_count DESC, m.usage_count DESC LIMIT $(limit)"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: "POST",
+    host: Mule::p('sys.db.api.host'),
+    basePath: Mule::p('sys.db.api.basepath'),
+    path: Mule::p('sys.db.api.path'),
+    responseTimeout: "600000",
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<flow-ref doc:name="common-http-request-sub-flow" doc:id="72a993a8-bb07-4381-969f-970046c51aff"
+					name="common-http-request-sub-flow" />
+
+				<!-- Filter out already-ordered materials -->
+				<ee:transform doc:name="var: materials" doc:id="68dde66c-735f-4f7b-9e03-0bd9a3f45031">
+					<ee:variables>
+						<ee:set-variable variableName="materials"><![CDATA[%dw 2.0
+output application/java
+var excluded = vars.itemDescriptions default []
+---
+payload filter ((item) ->
+    !(excluded contains upper(trim(item.itemdesc default "")))
+)]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<set-variable value="#[[]]" doc:name="Empty Materials — No Similar Calls"
+					doc:id="8a54dc87-3bf3-49a8-a3b4-f62c0a5c396e" variableName="materials" />
+			</otherwise>
+		</choice>
+
+		<logger level="INFO" doc:name="END" doc:id="4118fa72-0b35-4e8c-854e-a7a98519ede6"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: score-candidates-subflow  (NEW — replaces get-frequency-boost)
+	     Fetches vector_sim for each candidate material in one batch query.
+	     freq_score already comes from the materials query above.
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="score-candidates-subflow" doc:id="b8412b3a-23ae-453b-9358-9771b083b641">
+		<logger level="INFO" doc:name="START" doc:id="08607b0b-ce13-4fc1-bebc-288aaf11058a"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<choice doc:name="Skip if No Materials or No Embedding" doc:id="97e6f1da-a04c-4ff3-a095-27c883ee33f4">
+			<when expression="#[sizeOf(vars.materials default []) > 0 and !isEmpty(vars.generatedEmbedding default [])]">
+
+				<ee:transform doc:name="Build Vector Sim Query" doc:id="227098c6-e922-4cd6-9108-0e5057a10d58">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+var embedding = (vars.generatedEmbedding joinBy ",")
+var matIds    = (vars.materials map ("'" ++ $.material_id ++ "'")) joinBy ', '
+---
+{
+    "query": "SELECT material_id::text, 1 - (item_embedding <=> '[$(embedding)]'::vector) AS vector_sim FROM hvac_materials WHERE material_id = ANY(ARRAY[$(matIds)]::uuid[]) AND item_embedding IS NOT NULL"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: "POST",
+    host: Mule::p('sys.db.api.host'),
+    basePath: Mule::p('sys.db.api.basepath'),
+    path: Mule::p('sys.db.api.path'),
+    responseTimeout: "600000",
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<flow-ref doc:name="common-http-request-sub-flow" doc:id="ba7492f5-7c32-4c03-9426-db5997a3fe97"
+					name="common-http-request-sub-flow" />
+
+				<!-- Build material_id → vector_sim lookup map -->
+				<ee:transform doc:name="var: vectorSimMap" doc:id="0fd6af72-4d8d-4cb4-91cf-71f3be570a23">
+					<ee:variables>
+						<ee:set-variable variableName="vectorSimMap"><![CDATA[%dw 2.0
+output application/java
+---
+if (isEmpty(payload)) {}
+else payload reduce ((row, acc = {}) ->
+    acc ++ {(row.material_id): (row.vector_sim default 0.0) as Number}
+)]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<set-variable value="#[{}]" doc:name="Empty VectorSim Map"
+					doc:id="05a4409a-f675-4c96-8c8a-3edfd3b807f4" variableName="vectorSimMap" />
+			</otherwise>
+		</choice>
+
+		<logger level="INFO" doc:name="END" doc:id="f3b8746b-d502-4d03-8011-1718234f5f5e"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: get-max-usage-subflow
+	     CHANGE: added is_active = true filter
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="get-max-usage-subflow" doc:id="e997d566-1c5b-4f41-97d5-5b5d2f7fb094">
+		<logger level="INFO" doc:name="START" doc:id="92ac5078-c2a0-4e7e-ac1d-9a41d845506c"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<ee:transform doc:name="Build Max Usage Query" doc:id="016e7b12-4969-4c6b-bc7e-1cb37b7c86ca">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "query": "SELECT MAX(usage_count) AS max_usage FROM hvac_materials WHERE is_active = true"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: "POST",
+    host: Mule::p('sys.db.api.host'),
+    basePath: Mule::p('sys.db.api.basepath'),
+    path: Mule::p('sys.db.api.path'),
+    responseTimeout: "600000",
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref doc:name="common-http-request-sub-flow" doc:id="939794bb-15a9-4abd-87a3-afb26589a742"
+			name="common-http-request-sub-flow" />
+
+		<ee:transform doc:name="Extract Max Usage" doc:id="175d7f54-5537-424c-a420-d734f7e3f038">
+			<ee:variables>
+				<ee:set-variable variableName="maxUsage"><![CDATA[%dw 2.0
+output application/java
+var raw = payload[0].max_usage default 1
+---
+if (raw == null or raw == 0) 1 else raw as Number]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="END" doc:id="16712218-cf4d-4990-8fa1-09ce0da58c92"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: inject-universal-materials-subflow  (NEW)
+	     Always fetches Tier-1 items (usage_count >= 2000) and appends
+	     them to vars.materials so they are always recommended regardless
+	     of query. Examples: CLEAN MATERIALS, FREIGHT, CO2/NITROGEN etc.
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="inject-universal-materials-subflow" doc:id="fc5d0f2d-f141-4f3b-aede-471756f7686e">
+		<logger level="INFO" doc:name="START" doc:id="e6cc999f-a3bb-4bb8-9045-278586c7948c"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<!-- Fetch all Tier-1 universal materials -->
+		<ee:transform doc:name="Build Universal Materials Query" doc:id="dd91c62a-4dca-4365-8136-05246ea8c25e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "query": "SELECT material_id::text, itemnmbr, itemdesc, item_category, usage_count, material_tier FROM hvac_materials WHERE is_active = true AND material_tier = 1 ORDER BY usage_count DESC"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: "POST",
+    host: Mule::p('sys.db.api.host'),
+    basePath: Mule::p('sys.db.api.basepath'),
+    path: Mule::p('sys.db.api.path'),
+    responseTimeout: "600000",
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref doc:name="common-http-request-sub-flow" doc:id="8c142419-8963-4eec-926e-fcd80013eb05"
+			name="common-http-request-sub-flow" />
+
+		<!-- Merge universal items into vars.materials, skipping already-present or excluded ones -->
+		<ee:transform doc:name="var: materials (with universals injected)" doc:id="16290726-b321-43a6-9944-d2a98126aa83">
+			<ee:variables>
+				<ee:set-variable variableName="universalMaterials"><![CDATA[%dw 2.0
+output application/java
+var excluded    = vars.itemDescriptions default []
+var existingIds = (vars.materials default []) map $.material_id
+---
+payload filter ((u) ->
+    !(excluded contains upper(trim(u.itemdesc default "")))
+    and !(existingIds contains u.material_id)
+)]]></ee:set-variable>
+
+				<ee:set-variable variableName="materials"><![CDATA[%dw 2.0
+output application/java
+var excluded    = vars.itemDescriptions default []
+var existingIds = (vars.materials default []) map $.material_id
+var maxUsage    = vars.maxUsage default 1
+
+var newUniversals = payload
+    filter ((u) ->
+        !(excluded contains upper(trim(u.itemdesc default "")))
+        and !(existingIds contains u.material_id)
+    )
+    map ((u) -> u ++ {
+        hit_count  : 0,
+        freq_score : 0.0,
+        vector_sim : 0.0,
+        // Give universals a meaningful base score via pop_score + partial freq weight
+        // so they appear but don't crowd out items with real freq signal
+        injected   : true
+    })
+---
+(vars.materials default []) ++ newUniversals]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="END" doc:id="ffb53123-ddb9-45ce-934b-a9db5bb8fd88"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════════════════
+	     SUB-FLOW: merge-and-rank-subflow
+	     CHANGE: now uses vectorSimMap (from score-candidates) instead of
+	             freqBoost. freq_score comes directly from vars.materials.
+	             Universal injected items scored via pop_score only.
+	     ═══════════════════════════════════════════════════════════════ -->
+	<sub-flow name="merge-and-rank-subflow" doc:id="f80d5522-9de5-4aa5-8c53-5633687cead2">
+		<logger level="INFO" doc:name="START" doc:id="2b5e955a-e05f-412a-bd6e-808c0c82b2ad"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "Start of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+
+		<ee:transform doc:name="var: recommendations" doc:id="42ab3689-a739-4b14-9bce-21fe52f775b2">
+			<ee:variables>
+				<ee:set-variable variableName="recommendations"><![CDATA[%dw 2.0
+output application/java
+
+var VECTOR_WEIGHT = 0.50
+var FREQ_WEIGHT   = 0.35
+var POP_WEIGHT    = 0.15
+var TOP_K         = 15
+
+var materials    = vars.materials    default []
+var vectorSimMap = vars.vectorSimMap default {}
+var maxUsage     = vars.maxUsage     default 1
+var topKCalls    = sizeOf(vars.similarCallIds default [])
+
+---
+((materials map (mat) -> do {
+    var mid        = mat.material_id
+    var isInjected = mat.injected default false
+
+    // For injected universal items: no vector sim, no freq — score by popularity only
+    // For regular candidates: full three-signal scoring
+    var vectorSim  = if (isInjected) 0.0
+                     else (vectorSimMap[mid] default 0.0) as Number
+
+    var freqScore  = if (isInjected) 0.0
+                     else (mat.freq_score default 0.0) as Number
+
+    var hitCount   = if (isInjected) 0
+                     else (mat.hit_count default 0) as Number
+
+    var popScore   = ((mat.usage_count default 0) as Number) / (maxUsage as Number)
+
+    var finalScore = if (isInjected)
+                       // Universal items: partial freq weight + pop so they rank
+                       // below freq-boosted items but above pure gap-fills
+                       (FREQ_WEIGHT * 0.2) + (POP_WEIGHT * popScore)
+                     else
+                       (VECTOR_WEIGHT * vectorSim)
+                       + (FREQ_WEIGHT  * freqScore)
+                       + (POP_WEIGHT   * popScore)
+
+    var reasons = if (isInjected)
+                    ["Standard consumable — used on " ++ ((mat.usage_count default 0) as String) ++ " service calls"]
+                  else (
+                    (if (freqScore > 0)
+                        ["Used in " ++ (hitCount as String) ++ "/" ++ (topKCalls as String) ++ " similar calls"]
+                    else [])
+                    ++ ["Semantic similarity: " ++ (vectorSim as String {format: "0.000"})]
+                  )
+    ---
+    mat ++ {
+        vector_sim  : vectorSim,
+        freq_score  : freqScore,
+        pop_score   : popScore,
+        final_score : finalScore,
+        reasons     : reasons
+    }
+}) orderBy -$.final_score)
+  filter ((item, index) -> index < TOP_K)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="END" doc:id="1d10db2d-7494-4a8d-a05e-081477821ebd"
+			message='#[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId,
+    "appName": app.name,
+    "flow": flow.name,
+    "message": "End of flow " ++ flow.name,
+    "timestamp": now(),
+}]' />
+	</sub-flow>
+
+</mule>

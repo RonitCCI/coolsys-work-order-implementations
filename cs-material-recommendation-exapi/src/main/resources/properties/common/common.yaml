@@ -1,0 +1,43 @@
+# Common Configuration
+
+# Listener Configuration
+http:
+  host: "0.0.0.0"
+  readTimeout: "30000"
+  port: "8081"
+  private:
+    port: "8091"
+  path: "/api/*"
+
+# Error Handler
+explicitCodes: "502,504"
+
+# Timeouts
+timeout:
+  connection: "60000"
+  response: "60000"
+  request: "60000"
+  read: "60000"
+
+# Reconnection Strategy
+reconnection:
+  frequency: "5000"
+  attempts: "3"
+
+# Until Successful
+untilSuccess:
+  retries: "2"
+  frequency: "30000"
+
+# JSON Logger
+json:
+  logger:
+    maskedFields: "Authorization,client_secret,password"
+    application:
+      name: "cs-material-recommendation-exapi"
+      version: "1.0.0"
+
+# Debug Logs category
+cs:
+  debug:
+    logs: "com.cs.debug"

@@ -1,0 +1,8 @@
+# Test Secure Credentials
+
+prc:
+  material:
+    recommendation:
+      api:
+        clientId: "![<encrypted-test-client-id>]"
+        clientSecret: "![<encrypted-test-client-secret>]"

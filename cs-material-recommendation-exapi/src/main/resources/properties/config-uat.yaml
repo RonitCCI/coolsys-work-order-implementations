@@ -1,0 +1,33 @@
+# test Configuration
+
+# API Configuration
+api:
+  version: "/v1"
+  basePath: "/*"
+  autodiscovery:
+    id: "20965382"
+
+# Process API - Material Recommendation
+prc:
+  material:
+    recommendation:
+      api:
+        basepath: "/api"
+        responseBufferSize: "1024"
+        maxConnections: "-1"
+        idleTimeout: "30000"
+        timeout:
+          response:
+            general: "30000"
+          connection:
+            general: "30000"
+        reconnection:
+          frequency:
+            general: "10000"
+          attempts:
+            general: "3"
+        protocol: "HTTPS"
+        host: "cs-material-recommendation-papi-v1-uat-lcd39k.internal-83uhjy.usa-e1.cloudhub.io"
+        port: "443"
+        path: "/v1/work-orders/material-recommendations"
+        method: 'POST'

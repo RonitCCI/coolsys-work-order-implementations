@@ -1,0 +1,31 @@
+# prod Configuration
+
+# API Configuration
+api:
+  version: "/v1"
+  basePath: "/*"
+  autodiscovery:
+    id: "<prod-api-autodiscovery-id>"
+
+# Process API - Material Recommendation
+prc:
+  material:
+    recommendation:
+      api:
+        basepath: "/api"
+        responseBufferSize: "1024"
+        maxConnections: "-1"
+        idleTimeout: "30000"
+        timeout:
+          response:
+            general: "30000"
+          connection:
+            general: "30000"
+        reconnection:
+          frequency:
+            general: "10000"
+          attempts:
+            general: "3"
+        protocol: "HTTPS"
+        host: "cs-material-recommendation-prcapi-prod.<region>.cloudhub.io"
+        port: "443"

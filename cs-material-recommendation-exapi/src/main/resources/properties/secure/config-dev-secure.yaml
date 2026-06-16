@@ -1,0 +1,8 @@
+# Dev Secure Credentials
+
+prc:
+  material:
+    recommendation:
+      api:
+        clientId: "![<encrypted-dev-client-id>]"
+        clientSecret: "![<encrypted-dev-client-secret>]"

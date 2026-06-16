@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; color: #333;">
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+      <tbody>
+        <tr>
+          <td style="padding: 20px 0 10px 20px;">
+            <h2 style="margin: 0; font-family: 'Franklin Gothic Medium', Arial, sans-serif; font-size: 28pt; color: #000000;">IT Notification</h2>
+            <h4 style="margin: 0; font-family: 'Franklin Gothic Medium', Arial, sans-serif; font-size: 15pt; color: #666;">Integration Services - MuleSoft</h4>
+          </td>
+          <td style="text-align: right; padding-right: 20px;">
+            <img src="" alt="Coolsys Logo" height="80" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background-color: #1E6B5B; height: 3px; width: 96%; margin: 0 auto;"></div>
+
+    <div style="padding: 25px;">
+
+      <div style="font-weight: bold; font-family: Arial, sans-serif; margin-bottom: 10px;">System Information:</div>
+      <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin-bottom: 25px;">
+        <tbody>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; width: 25%;"><strong>Source System</strong></td>
+            <td style="padding: 10px; border: 1px solid #ddd;">#[output application/java --- vars.'systemInformation'.'source']</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Target System</strong></td>
+            <td style="padding: 10px; border: 1px solid #ddd;">#[output application/java --- vars.'systemInformation'.'target']</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;"><strong>Environment</strong></td>
+            <td style="padding: 10px; border: 1px solid #ddd;">#[output application/java --- vars.'systemInformation'.'env']</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-bottom: 25px;">
+        <div style="font-weight: bold; font-family: Arial, sans-serif; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px;">MuleSoft Integration Information:</div>
+        <div style="padding: 15px; background-color: #f4f4f4; border-left: 4px solid #1E6B5B; font-family: Arial, sans-serif;">
+          #[output application/java --- vars.'systemInformation'.'integration']
+        </div>
+      </div>
+      <div id="footer">
+        <small style="height: 3%; color: #2C414D;">CONFIDENTIALITY NOTICE: This e-mail message, including any attachments, is for the sole use of the intended recipients and may contain confidential and privileged information or otherwise protected by law. Any unauthorized review, use, disclosure or distribution is prohibited. If you are not the intended recipient, please contact the sender by reply e-mail and destroy all copies of the original message.</small>
+      </div>
+    </div>
+  </body>
+</html>

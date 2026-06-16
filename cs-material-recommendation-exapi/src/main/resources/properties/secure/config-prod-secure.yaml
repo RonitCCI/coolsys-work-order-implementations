@@ -1,0 +1,8 @@
+# Prod Secure Credentials
+
+prc:
+  material:
+    recommendation:
+      api:
+        clientId: "![<encrypted-prod-client-id>]"
+        clientSecret: "![<encrypted-prod-client-secret>]"

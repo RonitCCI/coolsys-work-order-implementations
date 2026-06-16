@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+        Implementation sub-flow for: POST /materials/recommendations
+        Receives request from experience layer, transforms and forwards to
+        the Material Recommendation Process API, then maps the response.
+    -->
+    <sub-flow name="post-materials-recommendations-subflow" doc:id="post-mat-rec-impl-subflow">
+
+        <logger level="INFO" doc:name="LOG: Start - POST materials-recommendations"
+            message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  "message": "post-materials-recommendations-subflow has started",&#10;  "correlationId": attributes.correlationId,&#10;  "datetime": now()&#10;}]'/>
+
+        <!-- Set HTTP operation details for the common request sub-flow -->
+        <set-variable variableName="correlationId" value="#[output json --- attributes.correlationId default uuid()]"
+            doc:name="Set correlationId"/>
+        <set-variable variableName="httpOperation" doc:name="Set httpOperation"
+            value="#[output json --- {&#10;	method: 'POST',&#10;	path: Mule::p('prc.material.recommendation.api.path'),&#10;	headers: {&#10;		'Content-Type': 'application/json',&#10;		'Accept': 'application/json'&#10;	}&#10;}]"/>
+
+        <!-- Transform request payload for the Process API -->
+        <ee:transform doc:name="Transform Request Payload">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- Call the common HTTP request sub-flow -->
+        <flow-ref name="cs-material-recommendation-prc-api-request-subflow" doc:name="cs-material-recommendation-prc-api-request-subflow"/>
+
+        <logger level="INFO" doc:name="LOG: End - POST /materials/recommendations"
+            message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  "message": "post-materials-recommendations-subflow has completed",&#10;  "correlationId": attributes.correlationId,&#10;  "datetime": now()&#10;}]'/>
+    </sub-flow>
+
+</mule>

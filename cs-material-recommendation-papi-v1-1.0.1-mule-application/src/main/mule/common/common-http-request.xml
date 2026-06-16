@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="common-http-request-sub-flow" doc:id="869a2451-22a4-4809-a966-340590d49d84" >
+		<logger level="INFO" doc:name="START" doc:id="d193f226-e056-425f-ac13-7593d65835dc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
+		<http:request doc:name="db-sys-api" doc:id="76d0e8ea-7b07-4fc3-98f2-047567a76d27" method="#[vars.httpOperation.method]" path="#[vars.httpOperation.path]" config-ref="http-request-configuration"/>
+		<logger level="INFO" doc:name="END" doc:id="7f23dfc9-254e-42d5-8ee8-3034758bed13" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
+	</sub-flow>
+</mule>

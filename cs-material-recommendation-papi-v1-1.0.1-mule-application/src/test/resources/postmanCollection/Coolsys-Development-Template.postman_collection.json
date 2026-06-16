@@ -1,0 +1,33 @@
+{
+	"info": {
+		"_postman_id": "02a45488-6ddd-4e61-ab26-0c674b23aa13",
+		"name": "Coolsys-Development-Template",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "LOCAL",
+			"item": [
+				{
+					"name": "Test Request",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://localhost:8081/test",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"test"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

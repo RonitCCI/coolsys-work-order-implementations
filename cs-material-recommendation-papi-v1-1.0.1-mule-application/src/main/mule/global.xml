@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:aws-secrets-manager-properties-override="http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override"
+	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:adtalem-core="http://www.mulesoft.org/schema/mule/adtalem-core"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/adtalem-core http://www.mulesoft.org/schema/mule/adtalem-core/current/mule-adtalem-core.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd
+http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override/current/mule-aws-secrets-manager-properties-override.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<configuration doc:name="Configuration"
+		doc:id="da15166a-5d9d-4b77-a80d-4743c6e90e45"
+		defaultErrorHandler-ref="common-exception-handler" />
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
+		file="properties/config-${mule.env}.yaml" />
+	<secure-properties:config name="secure_properties_configuration" doc:name="Secure Properties Config" doc:id="94934815-b2cd-47da-986a-dd87cc29345a" file="properties/secure/config-${mule.env}-secure.yaml" key="${mule.key}" >
+	</secure-properties:config>
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="dd661869-d2fe-461c-85f2-4dd2c7f7243f"
+		file="properties\common\common.yaml" />
+	<http:listener-config name="listener_configuration" doc:name="HTTP Listener config" doc:id="894a0492-33c6-42a3-b67c-4bd112c8d1cf" >
+		<http:listener-connection host="${http.host}" port="${http.port}" readTimeout="${http.readTimeout}" connectionIdleTimeout="120000"/>
+	</http:listener-config>
+	<global-property doc:name="Global Property" doc:id="f0264f47-f82e-441f-88e9-6b2147863e3e" name="mule.env" value="BaseValue" />
+	<global-property doc:name="Global Property" doc:id="14bd9564-aedb-4814-9db7-1f8c2fcd1547" name="mule.key" value="BaseValue" />
+	<ms-bedrock:config name="Amazon_Bedrock_Configuration" doc:name="Amazon Bedrock Configuration" doc:id="cc1555b0-9631-4830-8ee3-5b1a6ae245ee" >
+		<ms-bedrock:basic-connection accessKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockAccessKey]" secretKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockSecretKey]" />
+	</ms-bedrock:config>
+	<global-property doc:name="Global Property" doc:id="731fe37e-b14d-4783-9384-612c2078de63" name="accessKey" value="BaseValue" />
+	<global-property doc:name="Global Property" doc:id="e5d2122f-8391-4a64-b287-1d2a0da1ca92" name="accessSecret" value="BaseValue" />
+	<aws-secrets-manager-properties-override:config name="AWS_Secrets_Manager_Properties_Override_Config" doc:name="AWS Secrets Manager Properties Override Config" doc:id="448e5746-7a44-4af5-a3dc-0e5240b354ee" >
+		<aws-secrets-manager-properties-override:basic-connection region="us-east-1" accessKey="${accessKey}" secretKey="${accessSecret}" />
+	</aws-secrets-manager-properties-override:config>
+	<http:request-config
+        name="http-request-configuration" doc:name="HTTP Request config"
+        doc:id="3aa31dd2-98bc-4d0c-8135-6a2f470ef3ff"
+        basePath="#[vars.httpOperation.basePath]" sendCorrelationId="ALWAYS"
+        responseTimeout="#[vars.httpOperation.responseTimeout]">
+        <http:request-connection protocol="HTTPS"
+            host="#[vars.httpOperation.host]" />
+    </http:request-config>
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="d4c59c83-a27f-4d02-bcb0-d766d80e41ac" />
+</mule>

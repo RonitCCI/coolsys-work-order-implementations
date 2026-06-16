@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd">
+	<sub-flow name="common-bedrock-operations-sub-flow" doc:id="869a2451-22a4-4809-a966-340590d49d84" >
+		<logger level="INFO" doc:name="START" doc:id="d193f226-e056-425f-ac13-7593d65835dc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
+		<ms-bedrock:embedding-generate-from-text doc:name="Embedding generate from text" doc:id="4cce5e1d-a4a6-42d6-b56d-0625764567e0" config-ref="Amazon_Bedrock_Configuration" prompt="#[payload]" modelName="amazon.titan-embed-text-v2:0"/>
+		<logger level="INFO" doc:name="END" doc:id="7f23dfc9-254e-42d5-8ee8-3034758bed13" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
+	</sub-flow>
+</mule>

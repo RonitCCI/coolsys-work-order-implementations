@@ -1,0 +1,15 @@
+# Local Configuration
+
+# API Configuration
+api:
+  id: "0000"
+  basePath: "/*"
+  
+  
+sys:
+  db:
+   api:
+    method: "POST"
+    path: "recommendations"
+    basepath: "api/v1"
+    host: "cs-aws-aurora-db-sapi-dev-uy0wfu.83uhjy.usa-e1.cloudhub.io"
