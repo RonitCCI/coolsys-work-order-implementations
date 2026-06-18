@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
+	<sub-flow name="common-email-notification-sub-flow" doc:id="59d506e8-524c-454f-8efb-c63d415242c2" >
+		<logger level="INFO" doc:name="START" doc:id="148da2a8-75e5-4f14-93be-15457ddc0a44" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId default correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
+		<ee:transform doc:name="var: htmlBody" doc:id="7e2fbabb-10dd-480f-b63e-948146330205" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="htmlBody" ><![CDATA[%dw 2.0
+output application/xml
+var err = vars.errorDetails default {}
+---
+{
+  "html" @("lang": "en"): {
+    "head": {
+      "meta" @("charset": "UTF-8"): null,
+      "meta" @("name": "viewport", "content": "width=device-width, initial-scale=1.0"): null,
+      "title": "Connectivity Error Alert",
+      "style": "
+        body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; } 
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1); } 
+        .image-container img { max-width: 100px; margin-top: 10px; float: right; } 
+        h2 { text-align: left; color: #0670a0; font-size: 22px; font-weight: bold; margin-bottom: 10px; } 
+        p { font-size: 14px; color: #333; line-height: 1.6; text-align: left; font-weight: normal; } 
+        strong { color: #000; font-weight: bold; } 
+        ul { margin: 6px 0 0 20px; padding: 0; font-size: 14px; color: #333; font-weight: normal; }
+        li { font-size: 14px; color: #000; font-weight: normal; margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; } 
+        th { background-color: #f2f2f2; color: #000; text-align: left; border: 1px solid #ccc; font-size: 14px; font-weight: bold; padding: 10px; } 
+        td { padding: 10px; border: 1px solid #ccc; text-align: left; font-size: 13px; color: #000; font-weight: normal; } 
+        tr:nth-child(even) { background-color: #fafafa; } 
+        .summary-box { background-color: #eef7fc; padding: 15px; border-left: 4px solid #0670a0; margin: 20px 0; border-radius: 3px; }
+        .summary-box-error { background-color: #fceeee; padding: 15px; border-left: 4px solid #cc0000; margin: 20px 0; border-radius: 3px; }
+        .signatureMS { text-align: left; margin-top: 20px; font-size: 13px; } 
+        .signature { text-align: left; margin-top: 20px; font-size: 11px; color: #666; } 
+      "
+    },
+    "body": {
+      "div" @("class": "container"): {
+        "h2": "Connectivity Error Alert",
+
+        "div" @("class": "image-container"): {
+          "img" @("src": "https://cdn.icon-icons.com/icons2/2699/PNG/512/mulesoft_logo_icon_170933.png", "style": "max-width: 10%; margin: 20px 40px 0px 0px", "alt": "MuleSoft Logo"): null
+        },
+
+
+        "p": "The application '" ++ (app.name default "Unknown Application") ++ "' encountered a connectivity issue while invoking " ++ (err.appName default "Unknown App"),
+
+        // SECTION 1: GLOBAL/SYSTEM ERROR BOX (Only renders if an error crashed the API)
+        ("div" @("class": "summary-box-error"): {
+          "h3" @("style": "margin-top:0; font-size: 16px; color: #cc0000;"): "System Error Details",
+          "ul": {
+            "li": { "strong": "Error Type: ", "__text": err.errorType },
+            "li": { "strong": "Message: ", "__text": err.errorMessage },
+            "li": { "strong": "Timestamp: ", "__text": err.timestamp ++ " UTC" },
+            "li": { "strong": "Correlation ID: ", "__text": err.correlationId default uuid() }
+          }
+        }),
+
+
+        "div": { "p": "This is an automated message. Please do not reply to this email." },
+        "div" @("class": "signatureMS"): { "p": { "strong": "Regards, ", "br": null, "__text": "MuleSoft Team" }, "hr": null },
+        "div" @("class": "signature"): { "p": { "strong": "CONFIDENTIALITY NOTICE:", "__text": " This e-mail message is for the sole use of the intended recipients and may contain confidential and privileged information." } }
+      }
+    }
+  }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="var: mailOperation" doc:id="42379b4b-e2b5-479d-a1c4-b072e8ec4250" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="mailOperation" ><![CDATA[%dw 2.0
+output application/json
+var processName = app.name default "MuleSoft Process"
+
+var subjectPrefix =  "[CRITICAL FAILURE]" 
+
+var emailRecipients = (Mule::p('outlook.mail.recipients')) splitBy "," map{
+    'emailAddress': {
+        'address': $
+    }
+}
+//mulesoft-alerts@coolsys.com
+---
+{
+    "message": {
+        "subject": "$(subjectPrefix) [Material Recommendation] $(processName) Failure Alert",
+        "body": {
+            "contentType": "HTML",
+            "content": write(vars.htmlBody, "application/xml")
+        },
+        "toRecipients": emailRecipients
+    }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<outlook365:send-mail doc:name="Send mail" doc:id="09625039-58cf-4e9c-8a35-563fd96fe58f" config-ref="Outlook365_Config" userId="#[Mule::p('outlook.mail.senderId')]">
+			<reconnect />
+			<outlook365:message ><![CDATA[#[vars.mailOperation]]]></outlook365:message>
+		</outlook365:send-mail>
+		<logger level="INFO" doc:name="END" doc:id="28f94045-86a4-4cd4-8cbf-a5695fe8f09b" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId default correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "End of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
+	</sub-flow>
+</mule>

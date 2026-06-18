@@ -5,7 +5,7 @@ api:
   id: "0000"
   basePath: "/*"
   
-  
+# Aurora DB Configuration  
 sys:
   db:
    api:
@@ -14,4 +14,11 @@ sys:
     basepath: "api/v1"
     host: "cs-aws-aurora-db-sapi-dev-uy0wfu.83uhjy.usa-e1.cloudhub.io"
     
- 
+# Outlook Configuration    
+outlook:
+  baseURL: "https://graph.microsoft.com/v1.0"
+  tokenURL: "https://login.microsoftonline.com/4d07f46e-a758-4fa3-ab9d-902bfa54be2a/oauth2/v2.0/token"
+  scopes: "https://graph.microsoft.com/.default"
+  mail:
+    senderId: "mulsesoft-alerts@coolsys.com"
+    recipients: "mulesoft-alerts@coolsys.com,satyam.acharya@caeliusconsulting.com"

@@ -7,7 +7,33 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd">
 	<sub-flow name="common-bedrock-operations-sub-flow" doc:id="869a2451-22a4-4809-a966-340590d49d84" >
 		<logger level="INFO" doc:name="START" doc:id="d193f226-e056-425f-ac13-7593d65835dc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
-		<ms-bedrock:embedding-generate-from-text doc:name="Embedding generate from text" doc:id="4cce5e1d-a4a6-42d6-b56d-0625764567e0" config-ref="Amazon_Bedrock_Configuration" prompt="#[payload]" modelName="amazon.titan-embed-text-v2:0"/>
+		<try doc:name="Try: Generate Embeddings" doc:id="2df27cc1-7142-4bec-a8da-75ce4d2184ab" >
+			<ms-bedrock:embedding-generate-from-text doc:name="Embedding generate from text" doc:id="4cce5e1d-a4a6-42d6-b56d-0625764567e0" config-ref="Amazon_Bedrock_Configuration" prompt="#[payload]" modelName="amazon.titan-embed-text-v2:0">
+				<reconnect />
+		</ms-bedrock:embedding-generate-from-text>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9174d3a9-3f69-494f-8159-0b28d3b2ce08" type="ANY">
+					<ee:transform doc:name="var: errorDetails" doc:id="028ae8e8-640d-469b-b2ab-1970d126756c">
+						<ee:message />
+						<ee:variables>
+							<ee:set-variable variableName="errorDetails"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	appName: "Amazon Bedrock",
+	errorType: error.errorType.identifier default "CONNECTIVITY",
+	errorMessage: error.errorMessage.payload.value default error.detailedDescription,
+	correlationId: vars.correlationId default correlationId default uuid(),
+	timestamp:  ((now() >> "UTC") as String { format: "yyyy-MM-dd HH:mm:ss" })
+}
+]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<flow-ref doc:name="common-email-notification-sub-flow" doc:id="37a8fef0-5661-49fd-881a-58d03b63cd00" name="common-email-notification-sub-flow"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
 		<logger level="INFO" doc:name="END" doc:id="7f23dfc9-254e-42d5-8ee8-3034758bed13" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
 	</sub-flow>
+	
 </mule>

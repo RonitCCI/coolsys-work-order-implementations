@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+<mule xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
 	xmlns:aws-secrets-manager-properties-override="http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override"
 	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
 	xmlns:email="http://www.mulesoft.org/schema/mule/email"
@@ -9,8 +10,7 @@
 	xmlns:adtalem-core="http://www.mulesoft.org/schema/mule/adtalem-core"
 	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
 http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -21,7 +21,8 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd
 http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override/current/mule-aws-secrets-manager-properties-override.xsd
-http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
 	<configuration doc:name="Configuration"
 		doc:id="da15166a-5d9d-4b77-a80d-4743c6e90e45"
 		defaultErrorHandler-ref="common-exception-handler" />
@@ -41,7 +42,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 	<global-property doc:name="Global Property" doc:id="f0264f47-f82e-441f-88e9-6b2147863e3e" name="mule.env" value="BaseValue" />
 	<global-property doc:name="Global Property" doc:id="14bd9564-aedb-4814-9db7-1f8c2fcd1547" name="mule.key" value="BaseValue" />
 	<ms-bedrock:config name="Amazon_Bedrock_Configuration" doc:name="Amazon Bedrock Configuration" doc:id="cc1555b0-9631-4830-8ee3-5b1a6ae245ee" >
-		<ms-bedrock:basic-connection accessKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockAccessKey]" secretKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockSecretKey]" />
+		<ms-bedrock:basic-connection accessKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockAccessKey]" secretKey="#[read(p('aws-secrets::aws-bedrock-credentials')).bedrockSecretKey]" >
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</ms-bedrock:basic-connection>
 	</ms-bedrock:config>
 	<global-property doc:name="Global Property" doc:id="731fe37e-b14d-4783-9384-612c2078de63" name="accessKey" value="BaseValue" />
 	<global-property doc:name="Global Property" doc:id="e5d2122f-8391-4a64-b287-1d2a0da1ca92" name="accessSecret" value="BaseValue" />
@@ -54,7 +59,19 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         basePath="#[vars.httpOperation.basePath]" sendCorrelationId="ALWAYS"
         responseTimeout="#[vars.httpOperation.responseTimeout]">
         <http:request-connection protocol="HTTPS"
-            host="#[vars.httpOperation.host]" />
+            host="#[vars.httpOperation.host]" >
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</http:request-connection>
     </http:request-config>
 	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="d4c59c83-a27f-4d02-bcb0-d766d80e41ac" />
+	<outlook365:outlook365-config name="Outlook365_Config" doc:name="Outlook365 Outlook365 Config" doc:id="0a6a8826-b9ae-4ac5-b2a7-7b651b2fa3a6" >
+		<outlook365:oauth-client-credentials-connection baseUrl="${outlook.baseURL}">
+			<reconnection >
+				<reconnect />
+			</reconnection>
+			<outlook365:oauth-client-credentials clientId="${outlook.clientId}" clientSecret="${outlook.clientSecret}" tokenUrl="${outlook.tokenURL}" scopes="${outlook.scopes}" />
+		</outlook365:oauth-client-credentials-connection>
+	</outlook365:outlook365-config>
 </mule>
