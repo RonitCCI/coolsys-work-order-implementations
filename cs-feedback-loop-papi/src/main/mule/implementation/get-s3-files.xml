@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd 
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd 
+		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+
+	<sub-flow name="get-s3-files-sub-flow"
+		doc:id="cd1b609d-c1ca-4889-878d-a81f0b348273">
+		<ee:transform doc:name="var: bucketName, prefix for List"
+			doc:id="3a721821-df22-42f3-a0e9-536b1de5dcc6">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="bucketName"><![CDATA[%dw 2.0
+output application/json
+---
+Mule::p('s3.bucketName')]]></ee:set-variable>
+				<ee:set-variable variableName="prefix"><![CDATA[%dw 2.0
+output application/json
+---
+"wo_data/"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref doc:name="list-objects-sub-flow"
+			doc:id="df30363f-62f8-4e6a-88ff-b04dfb0f960c"
+			name="list-objects-sub-flow" target="listObjects" />
+
+		<ee:transform doc:name="var: missingFiles"
+			doc:id="5ce7c083-fa91-4f5b-b5ee-a32805499fa5">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="missingFiles"><![CDATA[%dw 2.0
+output application/json
+var requiredFiles = ["ApptNotes", "HeaderData", "OrderMaterials"]
+var listKeys = vars.listObjects map $.key
+---
+requiredFiles filter (reqFile) -> isEmpty(listKeys filter ((key) -> lower(key) contains lower(reqFile)))]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<choice doc:name="Check for missing files"
+			doc:id="9d7d893b-1aaf-4434-ab30-d4fa288aa629">
+			<when expression="#[!(isEmpty(vars.missingFiles))]">
+				<try doc:name="Try">
+					<ee:transform doc:name="Prepare Error Response"
+						doc:id="9ef9553b-f2cf-474c-a201-6adb66762307">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"The following files are missing from the S3 bucket: " ++ (vars.missingFiles joinBy ", ")]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<raise-error doc:name="Raise CUSTOM:FILES_MISSING"
+						doc:id="70da3403-b8ea-4d71-b9f8-8df6faa414c8"
+						type="CUSTOM:FILES_MISSING" description="#[payload]" />
+					<error-handler>
+						<on-error-propagate enableNotifications="true"
+							logException="true" doc:name="On Error Propagate"
+							type="CUSTOM:FILES_MISSING">
+							<logger level="ERROR" doc:name="Log — Missing Files Error"
+								message="#['Triggering missing files email notification...']" />
+
+							<set-variable variableName="customProcessName"
+								value="HVAC S3 File Fetch" doc:name="Set customProcessName" />
+							<flow-ref doc:name="send-email-notification-sub-flow"
+								name="send-email-notification-sub-flow"
+								doc:id="562df054-de54-4ac4-88c1-ba7445645f10" />
+						</on-error-propagate>
+					</error-handler>
+				</try>
+			</when>
+		</choice>
+
+		<ee:transform doc:name="var: objectKey = ApptNotes"
+			doc:id="200d3d40-9db7-4275-bd05-1dcccd01afee">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
+output application/json
+---
+(vars.listObjects filter ((lower($.key)) contains lower("ApptNotes")))[0].key]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref
+			doc:name="get-object-sub-flow → rawFileContent (ApptNotes)"
+			doc:id="a3b329e2-578c-4c1c-b8a6-cbab9532a7f9"
+			name="get-object-sub-flow" target="rawFileContent" />
+
+		<ee:transform
+			doc:name="Parse ApptNotes → notesData { headers, map }">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="notesData"><![CDATA[%dw 2.0
+output application/java
+
+fun safeString(data: Any) = do {
+    var raw = if (data == null) "" else if (typeOf(data) == String) data as String else if (typeOf(data) == Binary) data as String else if (data.^raw != null) data.^raw as String else ""
+    ---
+    raw replace /^\uFEFF/ with ""
+}
+
+fun parseToArrays(rawText: String) = do {
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
+    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var headers = headerLine splitBy "||" map trim($)
+    var dataRows = records[1 to -1] default []
+    ---
+    {
+        headers : headers,
+        rows : dataRows map ((rowStr) -> rowStr splitBy "||" map (trim($) replace /\r\n?/ with "\n") )
+    }
+}
+
+var parsed = parseToArrays(safeString(vars.rawFileContent))
+var lHeaders = parsed.headers map lower($)
+var foundScIdIdx = lHeaders indexOf "service_call_id"
+var scIdIdx = if (foundScIdIdx >= 0) foundScIdIdx else 0
+---
+{
+    headers : parsed.headers,
+    map : parsed.rows groupBy $[scIdIdx]
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<remove-variable variableName="rawFileContent"
+			doc:name="Discard rawFileContent — ApptNotes binary released" />
+
+		<ee:transform doc:name="var: objectKey = OrderMaterials"
+			doc:id="0a749f72-55ad-4b78-987f-5de0d604fbf4">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
+output application/json
+---
+(vars.listObjects filter ((lower($.key)) contains lower("OrderMaterials")))[0].key]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref
+			doc:name="get-object-sub-flow → rawFileContent (OrderMaterials)"
+			doc:id="03337f6b-43c3-4614-b8c6-1435668ee77c"
+			name="get-object-sub-flow" target="rawFileContent" />
+
+		<ee:transform
+			doc:name="Parse OrderMaterials → materialsJoinMap + uniqueMaterialCatalogEntries">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable
+					variableName="materialsParsedCombined"><![CDATA[%dw 2.0
+output application/java
+
+fun safeString(data: Any) = do {
+    var raw = if (data == null) "" else if (typeOf(data) == String) data as String else if (typeOf(data) == Binary) data as String else if (data.^raw != null) data.^raw as String else ""
+    ---
+    raw replace /^\uFEFF/ with ""
+}
+
+fun parseToArrays(rawText: String) = do {
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
+    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var headers = headerLine splitBy "||" map trim($)
+    var dataRows = records[1 to -1] default []
+    ---
+    {
+        headers : headers,
+        rows : dataRows map ((rowStr) -> rowStr splitBy "||" map (trim($) replace /\r\n?/ with "\n") )
+    }
+}
+
+var parsed = parseToArrays(safeString(vars.rawFileContent))
+var lHeaders = parsed.headers map lower($)
+var foundScIdIdx = lHeaders indexOf "service_call_id"
+var scIdIdx = if (foundScIdIdx >= 0) foundScIdIdx else 0
+var itemdescIdx = lHeaders indexOf "itemdesc"
+var itemnmbrIdx = lHeaders indexOf "itemnmbr"
+var categoryIdx = lHeaders indexOf "itemcategory"
+var trxqtyIdx = lHeaders indexOf "trxqty"
+var billingIdx = lHeaders indexOf "billing_amount"
+---
+{
+    joinMap: parsed.rows groupBy $[scIdIdx] mapObject ((groupRows, groupKey) -> {
+        (groupKey as String): groupRows map (row) -> {
+            ITEMDESC : trim((row[itemdescIdx] default '') replace /\u0000/ with ''),
+            ITEMNMBR : trim((row[itemnmbrIdx] default '') replace /\u0000/ with ''),
+            ItemCategory : trim((row[categoryIdx] default '') replace /\u0000/ with ''),
+            TRXQTY : row[trxqtyIdx] default '0',
+            Billing_Amount: row[billingIdx] default '0'
+        }
+    }),
+    
+    catalogEntries: (
+        parsed.rows reduce ((row, acc = {}) -> do {
+            var rawDesc = trim((row[itemdescIdx] default '') replace /\u0000/ with '')
+            var matKey = lower(rawDesc)
+            ---
+            if (rawDesc == '' or acc[matKey]?) acc else acc ++ {
+                (matKey): {
+                    itemdesc : rawDesc,
+                    itemnmbr : do {
+                        var c = trim((row[itemnmbrIdx] default '') replace /\u0000/ with '')
+                        ---
+                        if (c == '') null else c
+                    },
+                    item_category : do {
+                        var c = trim((row[categoryIdx] default '') replace /\u0000/ with '')
+                        ---
+                        if (c == '') null else c
+                    },
+                    materialKey : matKey
+                }
+            }
+        })
+    ) pluck (v) -> v
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<set-variable variableName="materialsJoinMap"
+			value="#[vars.materialsParsedCombined.joinMap]"
+			doc:name="Extract materialsJoinMap" />
+		<set-variable variableName="uniqueMaterialCatalogEntries"
+			value="#[vars.materialsParsedCombined.catalogEntries]"
+			doc:name="Extract uniqueMaterialCatalogEntries" />
+		<remove-variable
+			variableName="materialsParsedCombined"
+			doc:name="Discard materialsParsedCombined wrapper" />
+		<remove-variable variableName="rawFileContent"
+			doc:name="Discard rawFileContent — OrderMaterials binary released" />
+
+		<ee:transform doc:name="var: objectKey = HeaderData"
+			doc:id="73bbb1eb-ae16-4bae-bbd9-dd4335a2c8a6">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
+output application/json
+---
+(vars.listObjects filter ((lower($.key)) contains lower("HeaderData")))[0].key]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref
+			doc:name="get-object-sub-flow → rawFileContent (HeaderData)"
+			doc:id="b5db03ea-e202-444a-854a-2d41baba00a2"
+			name="get-object-sub-flow" target="rawFileContent" />
+
+		<ee:transform
+			doc:name="Parse HeaderData → headerParsed { headers, rows }">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="headerParsed"><![CDATA[%dw 2.0
+output application/java
+
+fun safeString(data: Any) = do {
+    var raw = if (data == null) "" else if (typeOf(data) == String) data as String else if (typeOf(data) == Binary) data as String else if (data.^raw != null) data.^raw as String else ""
+    ---
+    raw replace /^\uFEFF/ with ""
+}
+
+fun parseToArrays(rawText: String) = do {
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
+    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var headers = headerLine splitBy "||" map trim($)
+    var dataRows = records[1 to -1] default []
+    ---
+    {
+        headers : headers,
+        rows : dataRows map ((rowStr) -> rowStr splitBy "||" map (trim($) replace /\r\n?/ with "\n") )
+    }
+}
+---
+parseToArrays(safeString(vars.rawFileContent))]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<remove-variable variableName="rawFileContent"
+			doc:name="Discard rawFileContent — HeaderData binary released" />
+	</sub-flow>
+</mule>

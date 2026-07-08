@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="common-request-sub-flow"
+		doc:id="c5fc623f-bfaf-4a75-bde0-687b52e45a5a">
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="d2837b47-5de2-4ec5-bee5-3e8e6d1935e7" >
+			<http:request method="#[vars.httpOperation.method]" 
+			doc:name="Common Request" doc:id="9be59774-e1a3-43cf-8a0c-a9aab9968d33" config-ref="http-request-configuration" 
+			sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]" path="#[vars.httpOperation.path]"> 
+			<reconnect frequency="5000" count="3" /> <http:body><![CDATA[#[vars.requestPayload]]]></http:body> 
+			<http:headers><![CDATA[#[vars.httpOperation.headers default {}]]]></http:headers> 
+			<http:uri-params><![CDATA[#[vars.httpOperation.uriParams default {}]]]></http:uri-params> 
+			<http:query-params><![CDATA[#[vars.httpOperation.queryParams default {}]]]></http:query-params> 
+			</http:request>
+		</until-successful>
+	</sub-flow>
+</mule>

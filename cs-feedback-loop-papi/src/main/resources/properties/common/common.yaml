@@ -1,0 +1,52 @@
+# Common Configuration
+
+# Listener Configuration
+
+# HTTP Configuration
+http:
+  host: "0.0.0.0"
+  readTimeout: "30000"
+  port: "8081"
+  private:
+    port: "8091"
+    
+# HTTPS Configuration    
+https:
+  host: "0.0.0.0"
+  readTimeout: "30000"
+  port: "8082"
+  private:
+    port: "8092"
+
+# API Configuration
+api:
+  basePath: "/api/v1/*"
+  
+# Scheduler Cron
+scheduler:
+  cron: "0 0 0 1 1/3 ? *"
+  
+# Aurora DB Configuration
+awsAurora:
+  postMethod: "POST"
+  basePath: "/api/v1"
+  queryPath: "/feedback/query"
+  responseTimeout: "1200000"
+  feedbackPath: "/feedback"
+  putMethod: "PUT"
+  updateFeedback: "/feedback/updateFeedback"
+  deleteMethod: "DELETE"
+  deleteFeedback: "/feedback/deleteFeedback"
+  ddlExecute: "/feedback/ddl"
+  ddlResponseTimeout: "3600000"
+  
+# Email Report Configuration
+outlook:
+  tokenUrl: "https://login.microsoftonline.com/4d07f46e-a758-4fa3-ab9d-902bfa54be2a/oauth2/v2.0/token"
+  userId: "mulsesoft-alerts@coolsys.com"
+
+# AWS Bedrock Configuration
+aws:
+  bedrockModel: "amazon.titan-embed-text-v2:0"
+  dimensions: "1024"
+  jdbc: "jdbc:postgresql://dynaplutus.cluster-c2d4scu2oia3.us-east-1.rds.amazonaws.com:5432/postgres?sslmode=verify-full&sslrootcert=${app.home}/global-bundle.pem"

@@ -1,0 +1,8 @@
+# Local Configuration
+
+# API Configuration
+
+
+# DB Configuration
+awsAurora:
+  host: "localhost:8091"  

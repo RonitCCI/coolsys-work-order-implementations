@@ -1,0 +1,14 @@
+# Dev Configuration
+
+
+# DB Configuration
+awsAurora:
+  host: "cs-aws-aurora-db-sapi-dev-uy0wfu.83uhjy.usa-e1.cloudhub.io"
+
+
+# S3 Configuration
+s3:
+  bucketName: "coolsys-mssql-aurora-private"
+ 
+outlook:
+  recipients: ["guransh.chaudhary@caeliusconsulting.com"]

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+
+	<flow name="cs-feeback-loop-papi-main">
+		<http:listener
+			config-ref="cs-feedback-loop-http-listener-config"
+			path="${api.basePath}">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+		<apikit:router config-ref="cs-feeback-loop-papi-config" />
+	</flow>
+
+	<flow name="get:\feedbackLoop:cs-feeback-loop-papi-config">
+
+		<ee:transform doc:name="Set Response Payload">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "Accepted",
+	"message": "The HVAC Feedback Loop pipeline has been triggered successfully and is running in the background.",
+	"correlationId": correlationId,
+	'timestamp': now()
+}
+                ]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[202]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+
+		<async doc:name="Async - Run Pipeline">
+			<flow-ref doc:name='hvac-pipeline-scheduler-flow'
+				doc:id="dcc83c42-6e5f-480f-96cf-4f19a78e7a01"
+				name="hvac-pipeline-scheduler-flow" />
+		</async>
+	</flow>
+</mule>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
+
+	<sub-flow name="send-email-notification-sub-flow"
+		doc:id="dca1caa6-fb7b-497c-be2f-c13f540f1667">
+		<logger level="INFO" doc:name="START"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now()&#10;}]' />
+
+		<ee:transform
+			doc:name="Extract Execution Context (Errors vs Batch)">
+			<ee:variables>
+				<ee:set-variable variableName="execContext"><![CDATA[%dw 2.0
+output application/java
+
+// Safely check if the payload has batch result properties, bypassing strict typeOf checks
+var isBatchResult = (payload != null) and (payload.processedRecords != null or payload.totalRecords != null)
+
+// Unwrap the Retry Exhausted error to fetch the real underlying problem
+var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) 
+    error.suppressedErrors[-1] 
+else 
+    error
+---
+{
+	isSystemError: error != null,
+	errorMessage: if(actualError != null) actualError.description default "An unexpected system error occurred." else null,
+	errorType: if(actualError != null) ((actualError.errorType.namespace default "") ++ ":" ++ (actualError.errorType.identifier default "")) else null,
+	
+	isBatch: isBatchResult,
+	batchTotal: if(isBatchResult) (payload.totalRecords default payload.processedRecords default 0) else 0,
+	batchSuccess: if(isBatchResult) payload.successfulRecords default 0 else 0,
+	batchFailed: if(isBatchResult) payload.failedRecords default 0 else 0,
+	
+	hasFailures: (error != null) or (if(isBatchResult) (payload.failedRecords default 0) > 0 else false)
+}]]></ee:set-variable>
+				<ee:set-variable variableName="vAttachments"><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+var reportPayload = (vars.errorPayload default []) distinctBy ((item, index) -> item.report_Id)
+---
+if (isEmpty(reportPayload)) null
+else {
+    jsonContent: (reportPayload) map ((item) -> {
+        "Report Id": item.report_Id,
+        "Report Name": item.report_Name,
+        "Report Owner": item.report_Owner,
+        "status": item.status,
+        "Error Message": item.errorMessage
+    })
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<ee:transform doc:name="Generate HTML Email Body">
+			<ee:variables>
+				<ee:set-variable variableName="htmlBody"><![CDATA[%dw 2.0
+output application/xml
+---
+{
+  "html" @("lang": "en"): {
+    "head": {
+      "meta" @("charset": "UTF-8"): null,
+      "meta" @("name": "viewport", "content": "width=device-width, initial-scale=1.0"): null,
+      "title": "Pipeline Execution Report",
+      "style": "
+        body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; } 
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1); } 
+        .image-container img { max-width: 100px; margin-top: 10px; float: right; } 
+        h2 { text-align: left; color: #0670a0; font-size: 22px; font-weight: bold; margin-bottom: 10px; } 
+        p { font-size: 14px; color: #333; line-height: 1.6; text-align: left; font-weight: normal; } 
+        strong { color: #000; font-weight: bold; } 
+        ul { margin: 6px 0 0 20px; padding: 0; font-size: 14px; color: #333; font-weight: normal; }
+        li { font-size: 14px; color: #000; font-weight: normal; margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; } 
+        th { background-color: #f2f2f2; color: #000; text-align: left; border: 1px solid #ccc; font-size: 14px; font-weight: bold; padding: 10px; } 
+        td { padding: 10px; border: 1px solid #ccc; text-align: left; font-size: 13px; color: #000; font-weight: normal; } 
+        tr:nth-child(even) { background-color: #fafafa; } 
+        .summary-box { background-color: #eef7fc; padding: 15px; border-left: 4px solid #0670a0; margin: 20px 0; border-radius: 3px; }
+        .summary-box-error { background-color: #fceeee; padding: 15px; border-left: 4px solid #cc0000; margin: 20px 0; border-radius: 3px; }
+        .signatureMS { text-align: left; margin-top: 20px; font-size: 13px; } 
+        .signature { text-align: left; margin-top: 20px; font-size: 11px; color: #666; } 
+      "
+    },
+    "body": {
+      "div" @("class": "container"): {
+        "h2": if(vars.execContext.isSystemError) "Critical Pipeline Failure" 
+              else if(vars.execContext.hasFailures) "Batch Job Completed with Errors" 
+              else "Pipeline Completed Successfully",
+
+        "div" @("class": "image-container"): {
+          "img" @("src": "https://cdn.icon-icons.com/icons2/2699/PNG/512/mulesoft_logo_icon_170933.png", "style": "max-width: 10%; margin: 20px 40px 0px 0px", "alt": "MuleSoft Logo"): null
+        },
+
+        "p": "The automated process for " ++ (vars.customProcessName default app.name default "the application") ++ " has finished with the following status.",
+
+        ("div" @("class": "summary-box-error"): {
+          "h3" @("style": "margin-top:0; font-size: 16px; color: #cc0000;"): "System Error Details",
+          "ul": {
+            "li": { "strong": "Error Type: ", "__text": vars.execContext.errorType },
+            "li": { "strong": "Message: ", "__text": vars.execContext.errorMessage },
+            "li": { "strong": "Timestamp: ", "__text": ((now() >> "UTC") as String { format: "yyyy-MM-dd HH:mm:ss" }) ++ " UTC" },
+            "li": { "strong": "Correlation ID: ", "__text": correlationId default uuid() }
+          }
+        }) if (vars.execContext.isSystemError),
+
+        ("div" @("class": if(vars.execContext.hasFailures) "summary-box-error" else "summary-box"): {
+          "h3" @("style": "margin-top:0; font-size: 16px;"): "Batch Execution Statistics",
+          "ul": {
+            "li": { "strong": "Total Records: ", "__text": vars.execContext.batchTotal as String },
+            "li": { "strong": "Successful Records: ", "__text": vars.execContext.batchSuccess as String },
+            "li": { "strong": "Failed Records: ", "__text": vars.execContext.batchFailed as String },
+            "li": { "strong": "Timestamp: ", "__text": ((now() >> "UTC") as String { format: "yyyy-MM-dd HH:mm:ss" }) ++ " UTC" },
+            "li": { "strong": "Correlation ID: ", "__text": correlationId default uuid() }
+          }
+        }) if (vars.execContext.isBatch),
+
+        ("p": { "strong": "Failed Record Details:" }) if (vars.vAttachments != null and !isEmpty(vars.vAttachments.jsonContent)),
+
+        ("div": {
+          "table": {
+            "tr": { "th": keysOf(vars.vAttachments.jsonContent[0]) },
+            (vars.vAttachments.jsonContent default [] map (item) -> {
+              "tr": { "td": valuesOf(item) }
+            })
+          }
+        }) if (vars.vAttachments != null and !isEmpty(vars.vAttachments.jsonContent)),
+
+        "div": { "p": "This is an automated message. Please do not reply to this email." },
+        "div" @("class": "signatureMS"): { "p": { "strong": "Regards, ", "br": null, "__text": "MuleSoft Team" }, "hr": null },
+        "div" @("class": "signature"): { "p": { "strong": "CONFIDENTIALITY NOTICE:", "__text": " This e-mail message is for the sole use of the intended recipients and may contain confidential and privileged information." } }
+      }
+    }
+  }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<ee:transform doc:name="Build mailOperation Payload">
+			<ee:variables>
+				<ee:set-variable variableName="mailOperation"><![CDATA[%dw 2.0
+output application/json
+var processName = vars.customProcessName default app.name default "MuleSoft Process"
+
+var subjectPrefix = 
+    if (vars.execContext.isSystemError) "[CRITICAL FAILURE]" 
+    else if (vars.execContext.hasFailures) "[PARTIAL FAILURE]" 
+    else "[SUCCESS]"
+
+var emailRecipients = p('outlook.recipients') splitBy "," map{
+    'emailAddress': {
+        'address': $
+    }
+}
+---
+{
+    "message": {
+        "subject": "$(subjectPrefix) [Feedback Loop] $(processName) Execution Report",
+        "body": {
+            "contentType": "HTML",
+            "content": write(vars.htmlBody, "application/xml")
+        },
+        "toRecipients": emailRecipients
+    }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<outlook365:send-mail doc:name="Send Email"
+			doc:id="121fe59c-dea9-4541-babc-e604ec54c35c"
+			config-ref="Outlook365_Outlook365_Config"
+			userId="#[p('outlook.userId')]">
+			<outlook365:message><![CDATA[#[vars.mailOperation]]]></outlook365:message>
+		</outlook365:send-mail>
+
+		<logger level="INFO" doc:name="END"
+			doc:id="9f117cc1-61c8-466a-bc5c-410314a18f59"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow " ++ flow.name,&#10;	"timestamp": now()&#10;}]' />
+	</sub-flow>
+</mule>

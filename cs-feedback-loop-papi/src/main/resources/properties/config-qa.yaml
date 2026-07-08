@@ -1,0 +1,18 @@
+# Qa Configuration
+
+# API Configuration
+
+# DB Configuration
+awsAurora:
+  host: "cs-aws-aurora-db-sapi-uat-lcd39k.internal-83uhjy.usa-e1.cloudhub.io"
+
+
+
+# Aws Bucket Name
+
+s3:
+  bucketName: "coolsys-mssql-aurora-uat-private"
+  
+  
+outlook:
+  recipients: ["developmenterrors@coolsys.com, guransh.chaudhary@caeliusconsulting.com"]

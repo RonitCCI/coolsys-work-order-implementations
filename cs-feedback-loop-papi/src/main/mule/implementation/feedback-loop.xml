@@ -1,0 +1,1140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+		http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd 
+		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+		http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd 
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+	<os:object-store name="S3_Keys_Object_Store"
+		entryTtl="1" entryTtlUnit="DAYS" doc:name="Object store for S3 keys" />
+
+	<http:request-config
+		name="database-sapi-request-config" basePath="/api/v1/database"
+		doc:name="Database System API — HTTP Request Configuration">
+		<http:request-connection host="localhost"
+			port="8082" />
+	</http:request-config>
+
+	<flow name="hvac-pipeline-scheduler-flow"
+		doc:name="HVAC Pipeline — Daily Scheduler">
+		<scheduler doc:name="Every 3 months">
+			<scheduling-strategy>
+				<cron expression="${scheduler.cron}" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="START"
+			doc:id="fbbf61ff-4ea2-412c-83e4-34d393988245"
+			message="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	'correlationId': vars.correlationId default correlationId,&#10;	'appName': app.name,&#10;	'flow': flow.name,&#10;	'message': 'Start of flow ' ++ flow.name,&#10;	'timestamp': now()&#10;}]" />
+
+		<flow-ref doc:name="get-s3-files-sub-flow"
+			doc:id="84045c3a-6a71-4830-8b15-c72a6d5c578d"
+			name="get-s3-files-sub-flow" />
+		<logger level="INFO"
+			message="#['Loaded ' ++ (sizeOf(vars.headerParsed.rows) as String) ++ ' service call records']"
+			doc:name="Log — records loaded" />
+
+		<flow-ref name="seed-hvac-materials-flow"
+			doc:name="seed-hvac-materials-sub-flow" />
+
+		<set-variable variableName="catalogMap"
+			value="#[payload.materialCatalogMap]" doc:name="catalogMap" />
+		<set-variable variableName="materialsNeedingEmbedding"
+			value="#[payload.materialsNeedingEmbedding]"
+			doc:name="materialsNeedingEmbedding" />
+
+		<remove-variable
+			variableName="uniqueMaterialCatalogEntries"
+			doc:name="Remove uniqueMaterialCatalogEntries" />
+
+		<async doc:name="Async - Isolate Materials Batch Job Memory">
+			<remove-variable variableName="notesData"
+				doc:name="Remove notesData" />
+			<remove-variable variableName="materialsJoinMap"
+				doc:name="Remove materialsJoinMap" />
+			<remove-variable variableName="headerParsed"
+				doc:name="Remove headerParsed" />
+			<remove-variable variableName="catalogMap"
+				doc:name="Remove: catalogMap" />
+			<flow-ref name="embed-materials-batch-sub-flow"
+				doc:name="embed-materials-batch-sub-flow" />
+		</async>
+
+		<remove-variable
+			variableName="materialsNeedingEmbedding"
+			doc:name="Remove materialsNeedingEmbedding" />
+
+		<ee:transform
+			doc:name="var: allRecords (join headerParsed + notesData + materialsJoinMap)"
+			doc:id="602beca3-2b60-4307-9632-d056035deb8f">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="allRecords"><![CDATA[%dw 2.0
+output application/java
+fun toObject(row: Array, headers: Array) = { 
+    (headers map ((colName, index) -> (colName): row[index] default "" )) 
+}
+var searchIdx = (vars.headerParsed.headers map lower($)) indexOf "service_call_id"
+var headerIdIndex = if (searchIdx >= 0) searchIdx else 0
+---
+vars.headerParsed.rows map ((hRow) -> do {
+    var joinId = hRow[headerIdIndex] default ""
+    var baseObj = toObject(hRow, vars.headerParsed.headers)
+    var childNotes = (vars.notesData.map[joinId] default []) map (nRow) -> toObject(nRow, vars.notesData.headers)
+    var childMaterials = vars.materialsJoinMap[joinId] default []
+    ---
+    baseObj ++ { 
+        "app_notes" : childNotes, 
+        "order_materials": childMaterials 
+    }
+})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<remove-variable variableName="notesData"
+			doc:name="Remove notesData" />
+		<remove-variable variableName="materialsJoinMap"
+			doc:name="Remove materialsJoinMap" />
+		<remove-variable variableName="headerParsed"
+			doc:name="Remove headerParsed" />
+
+		<ee:transform doc:name="var: serviceCallIdentifiersJson">
+			<ee:variables>
+				<ee:set-variable
+					variableName="serviceCallIdentifiersJson"><![CDATA[%dw 2.0
+output application/java
+---
+write((vars.allRecords map (rec) -> (rec.Service_Call_ID default '')) filter (id) -> id != '', 'application/json')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<ee:transform
+			doc:name="vars: httpOperation, requestPayload (Query Embedded Calls)"
+			doc:id="fb24211b-0941-4eda-aea2-5e96f8adc1f8">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.queryPath'),
+    responseTimeout: p('awsAurora.responseTimeout')
+}]]></ee:set-variable>
+				<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "SELECT service_call_id FROM service_calls_v3 WHERE search_embedding IS NOT NULL AND service_call_id IN (SELECT jsonb_array_elements_text(:serviceCallIdentifiersJson::jsonb))",
+    parameters: {
+        serviceCallIdentifiersJson: vars.serviceCallIdentifiersJson
+    }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref doc:name="common-request-sub-flow"
+			doc:id="998ffffe-ba4e-46f7-872c-4f5076c44c91"
+			name="common-request-sub-flow" />
+
+		<ee:transform doc:name="Prepare Payload">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload default []]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<ee:transform doc:name="var: embeddedServiceCallLookup">
+			<ee:variables>
+				<ee:set-variable
+					variableName="embeddedServiceCallLookup"><![CDATA[%dw 2.0
+output application/java
+---
+{ ((payload default []) map (row) -> { (row.service_call_id): true }) }]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO"
+			message="#['Idempotency pre-check complete — ' ++ (sizeOf(vars.embeddedServiceCallLookup) as String) ++ ' service call(s) already embedded']"
+			doc:name="Idempotency pre-check complete" />
+
+		<ee:transform
+			doc:name="Prepare Payload for Batch Queue (JSON Strings)">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+
+fun cleanText(raw) = do {
+    var cleaned = trim((raw default '') replace /\u0000/ with '')
+    ---
+    if (cleaned == '') null else cleaned
+}
+
+fun normalizeTimestamp(raw) = do {
+    var trimmed = trim((raw default '') replace "|" with "")
+    var step1 = trimmed replace /(\d{2}:\d{2}:\d{2}):(\d+)$/ with (m) -> m[1] ++ "." ++ m[2]
+    var step2 = step1 replace /\.(\d{4,})$/ with (m) -> '.' ++ m[1][0 to 2]
+    var step3 = step2 replace /\.(\d{1,2})$/ with (m) -> '.' ++ (m[1] ++ '000')[0 to 2]
+    var testStr = trim(lower(step3) replace "am" with "" replace "pm" with "" replace "t" with " " replace "z" with "")
+    ---
+    if (step3 == '') null 
+    else if (testStr matches /^(\d{1,4}[\-\/]\d{1,2}[\-\/]\d{1,4}|\d{1,2}:\d{2}:\d{2}).*$/) step3 
+    else null
+}
+
+---
+(vars.allRecords filter ((rec) -> 
+    (rec.Service_Call_ID default '') != '' and 
+    not (vars.embeddedServiceCallLookup[rec.Service_Call_ID] default false)
+)) map ((rec) -> do {
+    var scId = rec.Service_Call_ID default ''
+    var serviceDescription = cleanText(rec.Service_Description)
+    
+    var appointmentRows = (rec.app_notes default []) map (note) -> {
+        service_call_id : scId,
+        appt_number : cleanText(note.ApptNumber),
+        office_notes : cleanText(note.OfficeNotes),
+        summary_notes : cleanText(note.SummaryNotes),
+        onsite_start_time : normalizeTimestamp(note.OnsiteStartTime),
+        onsite_stop_time : normalizeTimestamp(note.OnsiteStopTime),
+        status : cleanText(note.Status),
+        followup_reason : cleanText(note.FollowupReason)
+    }
+    
+    var serviceItemRows = ( (rec.order_materials default []) map ((mat) -> do {
+        var rawDesc = trim((mat.ITEMDESC default '') replace /\u0000/ with '')
+        var matKey = lower(rawDesc)
+        var matId = vars.catalogMap[matKey] default null
+        var trxqty = (mat.TRXQTY default '0') as Number default 0.0
+        var billing = (mat.Billing_Amount default '0') as Number default 0.0
+        ---
+        if (rawDesc == '' or matId == null) null 
+        else {
+            service_call_id : scId,
+            material_id : matId,
+            trxqty : trxqty,
+            billing_amount : billing
+        }
+    }) ) filter ((r) -> r != null)
+    
+    var combinedNotes = do {
+        var notes = ((rec.app_notes default []) map ((note) -> cleanText(note.SummaryNotes))) filter ((n) -> n != null)
+        ---
+        if (isEmpty(notes)) null else notes joinBy ' '
+    }
+    
+    var serviceEmbedInput = ([trim(serviceDescription default ''), trim(combinedNotes default '')] filter (p) -> p != '') joinBy ' '
+    
+    var finalObj = {
+        serviceCallId : scId,
+        serviceDescription : serviceDescription,
+        problem_desc : cleanText(rec.ProblemDesc),
+        custnmbr : cleanText(rec.CUSTNMBR),
+        adrscode : cleanText(rec.ADRSCODE),
+        division : cleanText(rec.Divisions),
+        combined_notes : combinedNotes,
+        appointmentRows : appointmentRows,
+        serviceItemRows : serviceItemRows,
+        materialIdsToIncrement : serviceItemRows map (row) -> { material_id: row.material_id },
+        serviceEmbedInputTruncated : serviceEmbedInput[0 to 7999] default serviceEmbedInput
+    }
+    ---
+    write(finalObj, "application/json")
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<logger level="INFO"
+			message="#['Beginning batch processing of ' ++ sizeOf(payload) ++ ' sanitized JSON string records...']"
+			doc:name="Log - Batch Size" />
+
+		<!-- OS ISOLATION: Extract pure String keys to decouple from S3 Connector 
+			Objects before batch starts -->
+		<ee:transform doc:name="Extract S3 Keys to Archive">
+			<ee:variables>
+				<ee:set-variable variableName="s3KeysToArchive"><![CDATA[%dw 2.0
+output application/json
+---
+vars.listObjects filter ((file) -> 
+    (lower(file.key) contains "apptnotes") or 
+    (lower(file.key) contains "ordermaterials") or 
+    (lower(file.key) contains "headerdata")
+) map $.key]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<os:store key="#[correlationId]"
+			objectStore="S3_Keys_Object_Store" doc:name="Store S3 Keys in OS">
+			<os:value><![CDATA[#[vars.s3KeysToArchive]]]></os:value>
+		</os:store>
+
+		<!-- CRITICAL PURGES for Batch Kryo Serialization -->
+		<remove-variable variableName="s3KeysToArchive"
+			doc:name="Remove s3KeysToArchive" />
+		<remove-variable variableName="allRecords"
+			doc:name="Remove allRecords" />
+		<remove-variable
+			variableName="serviceCallIdentifiersJson"
+			doc:name="Remove serviceCallIdentifiersJson" />
+		<remove-variable variableName="requestPayload"
+			doc:name="Remove requestPayload stream" />
+		<remove-variable variableName="bucketName"
+			doc:name="Remove bucketName" />
+		<remove-variable variableName="objectKey"
+			doc:name="Remove objectKey" />
+		<remove-variable variableName="missingFiles"
+			doc:name="Remove missingFiles" />
+		<remove-variable variableName="httpOperation"
+			doc:name="Remove httpOperation" />
+		<remove-variable variableName="prefix"
+			doc:name="Remove prefix" />
+		<remove-variable variableName="listObjects"
+			doc:name="Remove listObjects" />
+		<remove-variable variableName="catalogMap"
+			doc:name="Remove catalogMap" />
+		<remove-variable
+			variableName="embeddedServiceCallLookup" doc:name="Remove lookup" />
+
+		<batch:job jobName="hvac-service-calls-batch-job"
+			maxFailedRecords="100" maxConcurrency="4" blockSize="50"
+			doc:name="Batch Job — Process Service Calls">
+			<batch:process-records>
+				<batch:step
+					name="batch-step-embed-and-upsert-service-calls">
+					<ee:transform doc:name="Parse JSON Record">
+						<ee:variables>
+							<ee:set-variable variableName="parsedRecord"><![CDATA[%dw 2.0
+                            output application/java
+                            ---
+                            read(payload, 'application/json')
+                            ]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+
+					<choice doc:name="Embedding Needed?">
+						<when
+							expression="#[trim(vars.parsedRecord.serviceEmbedInputTruncated default '') != '']">
+							<try doc:name="Try">
+								<until-successful maxRetries="3"
+									millisBetweenRetries="5000">
+									<ee:transform doc:name="Prepare Input">
+										<ee:variables>
+											<ee:set-variable
+												variableName="embeddingInput"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	embeddings: vars.parsedRecord.serviceEmbedInputTruncated
+}
+                                                ]]></ee:set-variable>
+										</ee:variables>
+									</ee:transform>
+									<flow-ref name="common-bedrock-request-sub-flow"
+										target="serviceEmbeddingResponse" doc:name="common-bedrock-request-sub-flow"/>
+								</until-successful>
+								<error-handler>
+									<on-error-continue type="ANY">
+										<logger level="WARN"
+											message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for service call: ' ++ (vars.parsedRecord.serviceCallId default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]" doc:name="Log: Error"/>
+										<set-variable
+											variableName="serviceEmbeddingResponse" value="#[null]" doc:name="Set Embedding Response"/>
+									</on-error-continue>
+								</error-handler>
+							</try>
+
+							<ee:transform
+								doc:name="Append Vector &amp; Reserialize (JSON)">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.parsedRecord ++ {
+	searchEmbeddingVectorLiteral: if ( vars.serviceEmbeddingResponse != null ) '[' ++ ((vars.serviceEmbeddingResponse.embedding map (v) -> v as String {
+		format: '0.00000000'
+	}) joinBy ',') ++ ']' 
+                                        else null
+}
+                                    ]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							<remove-variable variableName="embeddingInput"
+								doc:name="Remove embeddingInput" />
+							<remove-variable
+								variableName="serviceEmbeddingResponse"
+								doc:name="Remove serviceEmbeddingResponse" />
+						</when>
+						<otherwise>
+							<ee:transform
+								doc:name="Pass Through &amp; Reserialize (JSON)">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+                                    output application/json
+                                    ---
+                                    vars.parsedRecord ++ { searchEmbeddingVectorLiteral: null }
+                                    ]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</otherwise>
+					</choice>
+					<remove-variable variableName="parsedRecord"
+						doc:name="Remove parsedRecord" />
+
+					<batch:aggregator doc:name="Batch Aggregator"
+						size="50">
+						<ee:transform
+							doc:name="Build Block-Level Bulk Operation Inputs">
+							<ee:variables>
+								<ee:set-variable variableName="serviceCallBlock"><![CDATA[%dw 2.0
+output application/java
+var records = payload map (read($, 'application/json'))
+---
+{
+	serviceCallRows: records map (r) -> {
+		service_call_id: r.serviceCallId,
+		service_description: r.serviceDescription,
+		problem_desc: r.problem_desc,
+		custnmbr: r.custnmbr,
+		adrscode: r.adrscode,
+		division: r.division,
+		combined_notes: r.combined_notes
+	},
+	serviceCallIds: records map (r) -> r.serviceCallId,
+	embeddingUpdateRows: (records filter (r) -> r.searchEmbeddingVectorLiteral != null) map (r) -> {
+		service_call_id: r.serviceCallId,
+		vec_literal: r.searchEmbeddingVectorLiteral
+	},
+	appointmentRows: records flatMap (r) -> (r.appointmentRows default []),
+	serviceItemRows: records flatMap (r) -> (r.serviceItemRows default []),
+	materialIdsToIncrement: records flatMap (r) -> (r.materialIdsToIncrement default [])
+}
+                                ]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+
+						<logger level="INFO"
+							message="#['Persisting block of ' ++ (sizeOf(vars.serviceCallBlock.serviceCallRows) as String) ++ ' service call(s)']"
+							doc:name="Log — persisting service call block" />
+
+						<ee:transform
+							doc:name="vars: httpOperation, requestPayload (Bulk Upsert service_calls_v3)">
+							<ee:variables>
+								<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    method: p('awsAurora.postMethod'),
+                                    host: p('awsAurora.host'),
+                                    basePath: p('awsAurora.basePath'),
+                                    path: p('awsAurora.feedbackPath'),
+                                    responseTimeout: p('awsAurora.responseTimeout')
+                                }
+                                ]]></ee:set-variable>
+								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    sql: "INSERT INTO service_calls_v3 (service_call_id, service_description, problem_desc, custnmbr, adrscode, division, combined_notes) VALUES (:service_call_id, :service_description, :problem_desc, :custnmbr, :adrscode, :division, :combined_notes) ON CONFLICT (service_call_id) DO UPDATE SET service_description = EXCLUDED.service_description, problem_desc = EXCLUDED.problem_desc, custnmbr = EXCLUDED.custnmbr, adrscode = EXCLUDED.adrscode, division = EXCLUDED.division, combined_notes = EXCLUDED.combined_notes, updated_at = NOW()",
+                                    parameters: vars.serviceCallBlock.serviceCallRows
+                                }
+                                ]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						<flow-ref doc:name="common-request-sub-flow"
+							name="common-request-sub-flow" />
+
+						<choice doc:name="Embedding Rows To Persist (Block)?">
+							<when
+								expression="#[not isEmpty(vars.serviceCallBlock.embeddingUpdateRows)]">
+								<ee:transform
+									doc:name="vars: httpOperation, requestPayload (bulk update embeddings)">
+									<ee:variables>
+										<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            method: p('awsAurora.putMethod'),
+                                            host: p('awsAurora.host'),
+                                            basePath: p('awsAurora.basePath'),
+                                            path: p('awsAurora.updateFeedback'),
+                                            responseTimeout: p('awsAurora.responseTimeout')
+                                        }
+                                        ]]></ee:set-variable>
+										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            sql: "UPDATE service_calls_v3 SET search_embedding = CAST(:vec_literal AS vector), updated_at = NOW() WHERE service_call_id = :service_call_id",
+                                            parameters: vars.serviceCallBlock.embeddingUpdateRows
+                                        }
+                                        ]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+								<flow-ref doc:name="common-request-sub-flow"
+									name="common-request-sub-flow" />
+							</when>
+						</choice>
+
+						<ee:transform
+							doc:name="vars: httpOperation, requestPayload (bulk delete old appointments)">
+							<ee:variables>
+								<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    method: p('awsAurora.deleteMethod'),
+                                    host: p('awsAurora.host'),
+                                    basePath: p('awsAurora.basePath'),
+                                    path: p('awsAurora.deleteFeedback'),
+                                    responseTimeout: p('awsAurora.responseTimeout')
+                                }
+                                ]]></ee:set-variable>
+								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    sql: "DELETE FROM hvac_appointments_v3 WHERE service_call_id = :serviceCallId",
+                                    parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> { "serviceCallId": id })
+                                }
+                                ]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						<flow-ref doc:name="common-request-sub-flow"
+							name="common-request-sub-flow" />
+
+						<choice doc:name="Appointment Rows To Insert (Block)?">
+							<when
+								expression="#[not isEmpty(vars.serviceCallBlock.appointmentRows)]">
+								<ee:transform
+									doc:name="vars: httpOperation, requestPayload (bulk insert appointments)">
+									<ee:variables>
+										<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            method: p('awsAurora.postMethod'),
+                                            host: p('awsAurora.host'),
+                                            basePath: p('awsAurora.basePath'),
+                                            path: p('awsAurora.feedbackPath'),
+                                            responseTimeout: p('awsAurora.responseTimeout')
+                                        }
+                                        ]]></ee:set-variable>
+										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            sql: "INSERT INTO hvac_appointments_v3 (service_call_id, appt_number, office_notes, summary_notes, onsite_start_time, onsite_stop_time, status, followup_reason) VALUES (:service_call_id, :appt_number, :office_notes, :summary_notes, CAST(:onsite_start_time AS TIMESTAMPTZ), CAST(:onsite_stop_time AS TIMESTAMPTZ), :status, :followup_reason)",
+                                            parameters: vars.serviceCallBlock.appointmentRows
+                                        }
+                                        ]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+								<flow-ref doc:name="common-request-sub-flow"
+									name="common-request-sub-flow" />
+							</when>
+						</choice>
+
+						<ee:transform
+							doc:name="vars: httpOperation, requestPayload (delete hvac_service_items)">
+							<ee:variables>
+								<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    method: p('awsAurora.deleteMethod'),
+                                    host: p('awsAurora.host'),
+                                    basePath: p('awsAurora.basePath'),
+                                    path: p('awsAurora.deleteFeedback'),
+                                    responseTimeout: p('awsAurora.responseTimeout')
+                                }
+                                ]]></ee:set-variable>
+								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                output application/json
+                                ---
+                                {
+                                    sql: "DELETE FROM hvac_service_items_v3 WHERE service_call_id = :serviceCallId AND was_recommended = FALSE",
+                                    parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> { "serviceCallId": id })
+                                }
+                                ]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						<flow-ref doc:name="common-request-sub-flow"
+							name="common-request-sub-flow" />
+
+						<choice doc:name="Service Item Rows To Insert (Block)?">
+							<when
+								expression="#[not isEmpty(vars.serviceCallBlock.serviceItemRows)]">
+								<ee:transform
+									doc:name="vars: httpOperation, requestPayload (insert service_items)">
+									<ee:variables>
+										<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            method: p('awsAurora.postMethod'),
+                                            host: p('awsAurora.host'),
+                                            basePath: p('awsAurora.basePath'),
+                                            path: p('awsAurora.feedbackPath'),
+                                            responseTimeout: p('awsAurora.responseTimeout')
+                                        }
+                                        ]]></ee:set-variable>
+										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            sql: "INSERT INTO hvac_service_items_v3 (service_call_id, material_id, trxqty, billing_amount, was_recommended) VALUES (:service_call_id, CAST(:material_id AS uuid), :trxqty, :billing_amount, FALSE)",
+                                            parameters: vars.serviceCallBlock.serviceItemRows
+                                        }
+                                        ]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+								<flow-ref doc:name="common-request-sub-flow"
+									name="common-request-sub-flow" />
+
+								<ee:transform
+									doc:name="vars: httpOperation, requestPayload (bulk update usage count)">
+									<ee:variables>
+										<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            method: p('awsAurora.putMethod'),
+                                            host: p('awsAurora.host'),
+                                            basePath: p('awsAurora.basePath'),
+                                            path: p('awsAurora.updateFeedback'),
+                                            responseTimeout: p('awsAurora.responseTimeout')
+                                        }
+                                        ]]></ee:set-variable>
+										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+                                        output application/json
+                                        ---
+                                        {
+                                            sql: "UPDATE hvac_materials_v3 SET usage_count = COALESCE(usage_count, 0) + 1, updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
+                                            parameters: vars.serviceCallBlock.materialIdsToIncrement
+                                        }
+                                        ]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+								<flow-ref doc:name="common-request-sub-flow"
+									name="common-request-sub-flow" />
+							</when>
+						</choice>
+						<remove-variable variableName="serviceCallBlock"
+							doc:name="Release serviceCallBlock" />
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete>
+				<logger level="INFO"
+					message="#['All pipeline blocks complete. Batch processed: ' ++ (payload.processedRecords default 0) as String ++ ' successfully, ' ++ (payload.failedRecords default 0) as String ++ ' failed.']"
+					doc:name="Log: Completion" />
+
+				<choice
+					doc:name="Check Failed Records Threshold for Archival">
+					<when
+						expression="#[payload.failedRecords &lt;= (p('batch.archive.failedThreshold') default 0)]">
+						<logger level="INFO"
+							message="Batch completed within failure threshold. Proceeding to archive S3 files."
+							doc:name="Log: Archival Started" />
+
+						<os:retrieve key="#[correlationId]"
+							objectStore="S3_Keys_Object_Store" target="s3KeysToArchive"
+							doc:name="Retrieve S3 Keys from OS" />
+
+						<foreach collection="#[vars.s3KeysToArchive]"
+							doc:name="For Each S3 Key">
+							<ee:transform doc:name="Set Move Variables">
+								<ee:variables>
+									<ee:set-variable variableName="sourceObjectKey"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+									<ee:set-variable variableName="targetObjectKey"><![CDATA[%dw 2.0
+output application/java
+---
+payload replace "wo_data/" with "wo_data/archive/"]]></ee:set-variable>
+									<ee:set-variable variableName="bucketName"><![CDATA[%dw 2.0
+output application/json
+---
+Mule::p('s3.bucketName')]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+
+							<flow-ref name="move-object-sub-flow"
+								doc:name="move-object-sub-flow" />
+						</foreach>
+
+						<os:remove key="#[correlationId]"
+							objectStore="S3_Keys_Object_Store" doc:name="Remove Keys from OS" />
+						<logger level="INFO"
+							message="S3 files successfully archived."
+							doc:name="Log - Archival Completed" />
+					</when>
+					<otherwise>
+						<logger level="WARN"
+							message="#['Batch failed records (' ++ payload.failedRecords ++ ') exceeded threshold. Skipping S3 archival.']"
+							doc:name="Log - Archival Skipped" />
+					</otherwise>
+				</choice>
+
+				<set-variable variableName="customProcessName"
+					value="HVAC Service Calls Vector Seeding"
+					doc:name="Set customProcessName" />
+				<flow-ref doc:name="send-email-notification-sub-flow"
+					name="send-email-notification-sub-flow" />
+
+				<flow-ref name="create-index-loop-sub-flow"
+					doc:name="create-index-loop-sub-flow"
+					doc:id="55d3d0e4-cedc-4fae-8b53-508dfe47f6cc" />
+				<logger level="INFO" doc:name="END"
+					message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+
+	<sub-flow name="seed-hvac-materials-flow"
+		doc:name="Seed HVAC Materials (Bulk-Optimized)">
+		<logger level="INFO" message="Seeding hvac_materials_v3."
+			doc:name="Seeding started" />
+		<ee:transform
+			doc:name="vars: httpOperation, requestPayload (create unique index DDL)"
+			doc:id="161b60db-06db-41cc-9baa-c3bbe64bf6fe">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.ddlExecute'),
+    responseTimeout: p('awsAurora.responseTimeout')
+}]]></ee:set-variable>
+				<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "CREATE UNIQUE INDEX IF NOT EXISTS uq_hvac_materials_v3_desc ON hvac_materials_v3 (LOWER(itemdesc));"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="common-request-sub-flow"
+			doc:id="efa8a53b-907f-4166-bab4-23efed2822a0"
+			name="common-request-sub-flow" />
+
+		<logger level="INFO"
+			message="#['Found ' ++ (sizeOf(vars.uniqueMaterialCatalogEntries default []) as String) ++ ' unique materials in JSON']"
+			doc:name="Log:Unique material count" />
+
+		<ee:transform
+			doc:name="Serialize Unique Material Keys (JSON)">
+			<ee:variables>
+				<ee:set-variable
+					variableName="uniqueMaterialKeysJson"><![CDATA[%dw 2.0
+output application/json
+---
+write((vars.uniqueMaterialCatalogEntries default []) map (m) -> m.materialKey, 'application/json')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<ee:transform
+			doc:name="vars: httpOperation, requestPayload (Query Existing Materials)"
+			doc:id="9e1389ba-1229-4c20-a1fb-1476f847843b">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.queryPath'),
+    responseTimeout: p('awsAurora.responseTimeout')
+}]]></ee:set-variable>
+				<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "SELECT material_id::text AS material_id, LOWER(itemdesc) AS material_key, (item_embedding IS NOT NULL) AS has_embedding FROM hvac_materials_v3 WHERE LOWER(itemdesc) IN (SELECT jsonb_array_elements_text(:materialKeysJson::jsonb))",
+    parameters: {
+        materialKeysJson: vars.uniqueMaterialKeysJson
+    }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="common-request-sub-flow"
+			doc:id="28f26841-de79-47ec-96ce-dd23d843357f"
+			name="common-request-sub-flow" />
+
+		<ee:transform
+			doc:name="Prepare Existing HVAC Materials">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload default []]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable variableName="existingMaterialCatalogRows"
+			value="#[payload default []]"
+			doc:name="Store Existing Material Catalog Rows" />
+
+		<ee:transform doc:name="Build Material Seeding Plan">
+			<ee:variables>
+				<ee:set-variable variableName="materialSeedingPlan"><![CDATA[%dw 2.0
+output application/java
+---
+do {
+    var existingIndex = { (vars.existingMaterialCatalogRows map (row) -> { (row.material_key): { material_id : row.material_id, has_embedding : row.has_embedding } }) }
+    var newMaterials = (vars.uniqueMaterialCatalogEntries filter (mat) -> existingIndex[mat.materialKey] == null) map (mat) -> mat ++ { material_id: uuid() }
+    var existingMaterialsNeedingEmbedding = (vars.uniqueMaterialCatalogEntries filter (mat) -> (existingIndex[mat.materialKey] != null) and not (existingIndex[mat.materialKey].has_embedding)) map (mat) -> mat ++ { material_id: existingIndex[mat.materialKey].material_id }
+    
+    var existingKeyMap = existingIndex mapObject ((value, key) -> { (key): value.material_id })
+    var newKeyMap = { (newMaterials map (mat) -> { (mat.materialKey): mat.material_id }) }
+    ---
+    {
+        newMaterialCatalogEntries : newMaterials,
+        materialsNeedingEmbedding : newMaterials ++ existingMaterialsNeedingEmbedding,
+        materialCatalogMap : existingKeyMap ++ newKeyMap
+    }
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<choice doc:name="New Materials To Upsert?">
+			<when
+				expression="#[not isEmpty(vars.materialSeedingPlan.newMaterialCatalogEntries)]">
+				<ee:transform
+					doc:name="vars: httpOperation, requestPayload (Insert into hvac_materials)"
+					doc:id="883dfe5a-15e5-4ae0-9e51-59adbedb3560">
+					<ee:message />
+					<ee:variables>
+						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.feedbackPath'),
+    responseTimeout: p('awsAurora.responseTimeout')
+}]]></ee:set-variable>
+						<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "INSERT INTO hvac_materials_v3 (material_id, itemnmbr, itemdesc, item_category) VALUES (CAST(:material_id AS uuid), :itemnmbr, :itemdesc, :item_category) ON CONFLICT (LOWER(itemdesc)) DO UPDATE SET itemnmbr = EXCLUDED.itemnmbr, item_category = EXCLUDED.item_category, updated_at = NOW()",
+    parameters: vars.materialSeedingPlan.newMaterialCatalogEntries
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="common-request-sub-flow"
+					doc:id="a2038dec-75eb-4750-99c6-1b21cad09334"
+					name="common-request-sub-flow" />
+				<logger level="INFO"
+					message="#['UPSERT catalog (bulk): ' ++ (sizeOf(vars.materialSeedingPlan.newMaterialCatalogEntries) as String) ++ ' new material(s)']"
+					doc:name="Log — new materials upserted (bulk)" />
+			</when>
+			<otherwise>
+				<logger level="INFO"
+					message="No new materials to upsert into hvac_materials_v3"
+					doc:name="No new materials" />
+			</otherwise>
+		</choice>
+
+		<remove-variable
+			variableName="existingMaterialCatalogRows"
+			doc:name="Remove existingMaterialCatalogRows" />
+		<remove-variable variableName="uniqueMaterialKeysJson"
+			doc:name="Remove uniqueMaterialKeysJson" />
+		<remove-variable variableName="httpOperation"
+			doc:name="Remove httpOperation" />
+		<remove-variable variableName="requestPayload"
+			doc:name="Remove requestPayload" />
+
+		<set-payload value="#[vars.materialSeedingPlan]"
+			doc:name="Return entire Seeding Plan payload" />
+		<remove-variable variableName="materialSeedingPlan"
+			doc:name="Remove materialSeedingPlan" />
+	</sub-flow>
+
+	<sub-flow name="embed-materials-batch-sub-flow"
+		doc:name="Embed HVAC Materials (Batch)">
+		<choice doc:name="Materials Needing Embedding?">
+			<when
+				expression="#[not isEmpty(vars.materialsNeedingEmbedding)]">
+				<ee:transform
+					doc:name="Prepare and Sanitize Payload for Batch Queue (JSON Strings)">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.materialsNeedingEmbedding map ((mat) -> do {
+	var combinedText = ([trim(mat.itemnmbr default ''), trim(mat.itemdesc default ''), trim(mat.item_category default '')] filter (p) -> p != '') joinBy ' '
+	var truncated = combinedText[0 to 7999] default combinedText
+	---
+	write({
+		material_id: mat.material_id,
+		itemdesc: mat.itemdesc,
+		materialEmbedInputTruncated: truncated
+	}, "application/json")
+})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+
+				<logger level="INFO"
+					message="#['Beginning background batch processing of ' ++ sizeOf(payload) ++ ' sanitized JSON string materials...']"
+					doc:name="Log:Batch Size" />
+
+				<remove-variable
+					variableName="materialsNeedingEmbedding"
+					doc:name="Remove materialsNeedingEmbedding array" />
+
+				<batch:job jobName="hvac-materials-batch-job"
+					maxFailedRecords="100" maxConcurrency="4" blockSize="50"
+					doc:name="Batch Job — Process Material Embeddings">
+					<batch:process-records>
+						<batch:step name="batch-step-embed-materials">
+							<ee:transform doc:name="Parse JSON Record">
+								<ee:variables>
+									<ee:set-variable variableName="parsedRecord"><![CDATA[%dw 2.0
+                                    output application/java
+                                    ---
+                                    read(payload, 'application/json')
+                                    ]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+
+							<choice doc:name="Any Embeddings Needed?">
+								<when
+									expression="#[trim(vars.parsedRecord.materialEmbedInputTruncated default '') != '']">
+									<try doc:name="Try Bedrock">
+										<until-successful maxRetries="3"
+											millisBetweenRetries="5000">
+											<ee:transform doc:name="Prepare Input">
+												<ee:variables>
+													<ee:set-variable
+														variableName="embeddingInput"><![CDATA[%dw 2.0
+                                                    output application/java
+                                                    ---
+                                                    { embeddings: vars.parsedRecord.materialEmbedInputTruncated }
+                                                    ]]></ee:set-variable>
+												</ee:variables>
+											</ee:transform>
+											<flow-ref name="common-bedrock-request-sub-flow"
+												target="materialEmbeddingResponse" />
+										</until-successful>
+										<error-handler>
+											<on-error-continue type="ANY">
+												<logger level="WARN"
+													message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for material: ' ++ (vars.parsedRecord.itemdesc default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]" doc:name="Log: Error Message"/>
+												<set-variable
+													variableName="materialEmbeddingResponse" value="#[null]" doc:name="Set Error Response"/>
+											</on-error-continue>
+										</error-handler>
+									</try>
+
+									<ee:transform
+										doc:name="Append Vector &amp; Reserialize (JSON)">
+										<ee:message>
+											<ee:set-payload><![CDATA[%dw 2.0
+                                            output application/json
+                                            ---
+                                            vars.parsedRecord ++ {
+                                                item_embedding_literal: if (vars.materialEmbeddingResponse != null) 
+                                                    '[' ++ ((vars.materialEmbeddingResponse.embedding map (v) -> v as String {format: '0.00000000'}) joinBy ',') ++ ']' 
+                                                else null
+                                            }
+                                            ]]></ee:set-payload>
+										</ee:message>
+									</ee:transform>
+									<remove-variable variableName="embeddingInput"
+										doc:name="Remove embeddingInput" />
+									<remove-variable
+										variableName="materialEmbeddingResponse"
+										doc:name="Remove materialEmbeddingResponse" />
+								</when>
+								<otherwise>
+									<ee:transform
+										doc:name="Pass Through &amp; Reserialize (JSON)">
+										<ee:message>
+											<ee:set-payload><![CDATA[%dw 2.0
+                                            output application/json
+                                            ---
+                                            vars.parsedRecord ++ { item_embedding_literal: null }
+                                            ]]></ee:set-payload>
+										</ee:message>
+									</ee:transform>
+								</otherwise>
+							</choice>
+							<remove-variable variableName="parsedRecord"
+								doc:name="Remove parsedRecord" />
+
+							<batch:aggregator doc:name="Batch Aggregator"
+								size="50">
+								<ee:transform
+									doc:name="Collect Material Embedding Update Rows">
+									<ee:variables>
+										<ee:set-variable
+											variableName="materialEmbeddingUpdateRows"><![CDATA[%dw 2.0
+output application/java
+---
+(payload map (read($, 'application/json'))) filter ((row) -> row.item_embedding_literal != null)
+                                        ]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+
+								<choice doc:name="Material Embedding Rows To Persist?">
+									<when
+										expression="#[not isEmpty(vars.materialEmbeddingUpdateRows)]">
+										<ee:transform
+											doc:name="vars: httpOperation, requestPayload (Bulk Update Material Embeddings)">
+											<ee:variables>
+												<ee:set-variable
+													variableName="httpOperation"><![CDATA[%dw 2.0
+                                                output application/json
+                                                ---
+                                                {
+                                                    method: p('awsAurora.putMethod'),
+                                                    host: p('awsAurora.host'),
+                                                    basePath: p('awsAurora.basePath'),
+                                                    path: p('awsAurora.updateFeedback'),
+                                                    responseTimeout: p('awsAurora.responseTimeout')
+                                                }
+                                                ]]></ee:set-variable>
+												<ee:set-variable
+													variableName="requestPayload"><![CDATA[%dw 2.0
+                                                output application/json
+                                                ---
+                                                {
+                                                    sql: "UPDATE hvac_materials_v3 SET item_embedding = CAST(:item_embedding_literal AS vector), updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
+                                                    parameters: vars.materialEmbeddingUpdateRows
+                                                }
+                                                ]]></ee:set-variable>
+											</ee:variables>
+										</ee:transform>
+										<flow-ref doc:name="common-request-sub-flow"
+											name="common-request-sub-flow" />
+										<logger level="INFO"
+											message="#['Embedded ' ++ (sizeOf(vars.materialEmbeddingUpdateRows) as String) ++ ' HVAC material(s) (bulk update)']" />
+									</when>
+								</choice>
+								<remove-variable
+									variableName="materialEmbeddingUpdateRows"
+									doc:name="Remove materialEmbeddingUpdateRows" />
+							</batch:aggregator>
+						</batch:step>
+					</batch:process-records>
+					<batch:on-complete>
+						<logger level="INFO"
+							message="#['Materials embeddings batch complete. Processed: ' ++ (payload.processedRecords default 0) as String ++ ' successfully, ' ++ (payload.failedRecords default 0) as String ++ ' failed.']"
+							doc:name="Log: Complete" />
+
+						<set-variable variableName="customProcessName"
+							value="HVAC Materials Vector Seeding"
+							doc:name="Set customProcessName" />
+						<flow-ref doc:name="send-email-notification-sub-flow"
+							name="send-email-notification-sub-flow" />
+					</batch:on-complete>
+				</batch:job>
+			</when>
+			<otherwise>
+				<logger level="INFO"
+					message="No materials require embedding in the background"
+					doc:name="Log: No materials need embedding" />
+				<remove-variable
+					variableName="materialsNeedingEmbedding"
+					doc:name="Remove materialsNeedingEmbedding" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="create-index-loop-sub-flow"
+		doc:id="92db6cba-18e1-4087-afb2-70f57cfc3beb">
+		<logger level="INFO"
+			message="Creating IVFFlat vector indexes..."
+			doc:name="IVFFlat index creation started" />
+		<try
+			doc:name="Try — IVFFlat index creation (non-fatal on timeout)">
+			<ee:transform
+				doc:name="vars: httpOperation, requestPayload (Create DDL Index for hvac_materials)"
+				doc:id="b19c103b-ae7d-4222-8583-97651c455a20">
+				<ee:message />
+				<ee:variables>
+					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.ddlExecute'),
+    responseTimeout: p('awsAurora.ddlResponseTimeout')
+}]]></ee:set-variable>
+					<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "CREATE INDEX IF NOT EXISTS idx_hvac_materials_v3_catalog_embedding ON hvac_materials_v3 USING ivfflat (item_embedding vector_cosine_ops) WITH (lists = 100);"
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="common-request-sub-flow"
+				doc:id="1f0f7769-7703-43ed-8d14-2eb609f8ab34"
+				name="common-request-sub-flow" />
+
+			<ee:transform
+				doc:name="vars: httpOperation, requestPayload (Create DDL Index service_calls)"
+				doc:id="779583ad-5a4a-464b-91be-9ee0801f2d2c">
+				<ee:message />
+				<ee:variables>
+					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    method: p('awsAurora.postMethod'),
+    host: p('awsAurora.host'),
+    basePath: p('awsAurora.basePath'),
+    path: p('awsAurora.ddlExecute'),
+    responseTimeout: p('awsAurora.ddlResponseTimeout')
+}]]></ee:set-variable>
+					<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    sql: "CREATE INDEX IF NOT EXISTS idx_service_calls_v3_search_embedding ON service_calls_v3 USING ivfflat (search_embedding vector_cosine_ops) WITH (lists = 100);"
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="common-request-sub-flow"
+				doc:id="a82535c6-cc51-40bc-aca1-e1fc7205f9c2"
+				name="common-request-sub-flow" />
+			<logger level="INFO" message="Vector indexes created."
+				doc:name="IVFFlat index creation complete" />
+			<error-handler>
+				<on-error-continue type="ANY"
+					doc:name="On Error Continue — DDL timeout is non-fatal">
+					<logger level="WARN"
+						message="#['IVFFlat index creation failed or timed out — indexes will be retried on next run: ' ++ error.description]"
+						doc:name="Log — index creation failed non-fatally" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</sub-flow>
+</mule>

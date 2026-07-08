@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd">
+	<sub-flow name="common-bedrock-request-sub-flow"
+		doc:id="be4c63a7-1cc4-4848-846b-5392e04d8e4d">
+		<ms-bedrock:embedding-generate-from-text
+			doc:name="Embedding generate from text"
+			doc:id="957212bc-4535-43a8-a035-57904fcf24d7"
+			config-ref="amazon-bedrock-configuration" prompt="#[vars.embeddingInput.embeddings]"
+			modelName="${aws.bedrockModel}" dimension="${aws.dimensions}"/>
+	</sub-flow>
+</mule>
