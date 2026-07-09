@@ -13,9 +13,9 @@
 		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 
 	<sub-flow name="get-s3-files-sub-flow"
-		doc:id="cd1b609d-c1ca-4889-878d-a81f0b348273">
+		doc:id="9b41a76a-06ae-442c-bab6-e13157c80571">
 		<ee:transform doc:name="var: bucketName, prefix for List"
-			doc:id="3a721821-df22-42f3-a0e9-536b1de5dcc6">
+			doc:id="0e373307-dc47-4744-a436-eb552ed49760">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="bucketName"><![CDATA[%dw 2.0
@@ -25,16 +25,16 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 				<ee:set-variable variableName="prefix"><![CDATA[%dw 2.0
 output application/json
 ---
-"wo_data/"]]></ee:set-variable>
+"wo_data/pending"]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 
 		<flow-ref doc:name="list-objects-sub-flow"
-			doc:id="df30363f-62f8-4e6a-88ff-b04dfb0f960c"
+			doc:id="3ee37da7-d27e-442a-861c-704d7a0e5201"
 			name="list-objects-sub-flow" target="listObjects" />
 
 		<ee:transform doc:name="var: missingFiles"
-			doc:id="5ce7c083-fa91-4f5b-b5ee-a32805499fa5">
+			doc:id="dd162318-8b3d-43ef-b2c2-a6602b219779">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="missingFiles"><![CDATA[%dw 2.0
@@ -47,11 +47,11 @@ requiredFiles filter (reqFile) -> isEmpty(listKeys filter ((key) -> lower(key) c
 		</ee:transform>
 
 		<choice doc:name="Check for missing files"
-			doc:id="9d7d893b-1aaf-4434-ab30-d4fa288aa629">
+			doc:id="df6824a3-1b1f-4761-a43b-9b9f0a771700">
 			<when expression="#[!(isEmpty(vars.missingFiles))]">
 				<try doc:name="Try">
 					<ee:transform doc:name="Prepare Error Response"
-						doc:id="9ef9553b-f2cf-474c-a201-6adb66762307">
+						doc:id="057926dd-37f9-435b-9427-25750a67c77e">
 						<ee:message>
 							<ee:set-payload><![CDATA[%dw 2.0
 output text/plain
@@ -60,7 +60,7 @@ output text/plain
 						</ee:message>
 					</ee:transform>
 					<raise-error doc:name="Raise CUSTOM:FILES_MISSING"
-						doc:id="70da3403-b8ea-4d71-b9f8-8df6faa414c8"
+						doc:id="c27d0770-59c1-4e7f-80ff-4697c326be2c"
 						type="CUSTOM:FILES_MISSING" description="#[payload]" />
 					<error-handler>
 						<on-error-propagate enableNotifications="true"
@@ -73,7 +73,7 @@ output text/plain
 								value="HVAC S3 File Fetch" doc:name="Set customProcessName" />
 							<flow-ref doc:name="send-email-notification-sub-flow"
 								name="send-email-notification-sub-flow"
-								doc:id="562df054-de54-4ac4-88c1-ba7445645f10" />
+								doc:id="36a13ece-7d3f-43a1-8536-bdb676da8802" />
 						</on-error-propagate>
 					</error-handler>
 				</try>
@@ -81,7 +81,7 @@ output text/plain
 		</choice>
 
 		<ee:transform doc:name="var: objectKey = ApptNotes"
-			doc:id="200d3d40-9db7-4275-bd05-1dcccd01afee">
+			doc:id="005bf33a-57cf-47e3-b758-4a4c35f9afd6">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
@@ -92,7 +92,7 @@ output application/json
 		</ee:transform>
 		<flow-ref
 			doc:name="get-object-sub-flow → rawFileContent (ApptNotes)"
-			doc:id="a3b329e2-578c-4c1c-b8a6-cbab9532a7f9"
+			doc:id="86ea0ec7-5bb7-4686-a7e2-8d45235d46df"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
@@ -109,8 +109,9 @@ fun safeString(data: Any) = do {
 }
 
 fun parseToArrays(rawText: String) = do {
-    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
-    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}[ \t]*\|\|)/
+    var firstRecordLines = records[0] splitBy /(?:\r\n|\n|\r)/
+    var headerLine = (firstRecordLines filter ((line) -> line contains "||"))[-1] default ""
     var headers = headerLine splitBy "||" map trim($)
     var dataRows = records[1 to -1] default []
     ---
@@ -135,7 +136,7 @@ var scIdIdx = if (foundScIdIdx >= 0) foundScIdIdx else 0
 			doc:name="Discard rawFileContent — ApptNotes binary released" />
 
 		<ee:transform doc:name="var: objectKey = OrderMaterials"
-			doc:id="0a749f72-55ad-4b78-987f-5de0d604fbf4">
+			doc:id="2347a214-d199-4f7c-abf8-fe4eab9abf79">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
@@ -146,7 +147,7 @@ output application/json
 		</ee:transform>
 		<flow-ref
 			doc:name="get-object-sub-flow → rawFileContent (OrderMaterials)"
-			doc:id="03337f6b-43c3-4614-b8c6-1435668ee77c"
+			doc:id="41ccbcc0-6e19-4c76-95a8-12e131acec4b"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
@@ -164,8 +165,9 @@ fun safeString(data: Any) = do {
 }
 
 fun parseToArrays(rawText: String) = do {
-    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
-    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}[ \t]*\|\|)/
+    var firstRecordLines = records[0] splitBy /(?:\r\n|\n|\r)/
+    var headerLine = (firstRecordLines filter ((line) -> line contains "||"))[-1] default ""
     var headers = headerLine splitBy "||" map trim($)
     var dataRows = records[1 to -1] default []
     ---
@@ -236,7 +238,7 @@ var billingIdx = lHeaders indexOf "billing_amount"
 			doc:name="Discard rawFileContent — OrderMaterials binary released" />
 
 		<ee:transform doc:name="var: objectKey = HeaderData"
-			doc:id="73bbb1eb-ae16-4bae-bbd9-dd4335a2c8a6">
+			doc:id="89bd737a-232f-4637-b5e3-1cba18d670cd">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="objectKey"><![CDATA[%dw 2.0
@@ -247,7 +249,7 @@ output application/json
 		</ee:transform>
 		<flow-ref
 			doc:name="get-object-sub-flow → rawFileContent (HeaderData)"
-			doc:id="b5db03ea-e202-444a-854a-2d41baba00a2"
+			doc:id="219d7466-72b6-4dd5-92a9-d629dc0016c4"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
@@ -264,8 +266,9 @@ fun safeString(data: Any) = do {
 }
 
 fun parseToArrays(rawText: String) = do {
-    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}\|\|)/
-    var headerLine = (records[0] splitBy /(?:\r\n|\n|\r)/)[0] default ""
+    var records = rawText splitBy /(?:\r\n|\n|\r)(?=[a-zA-Z0-9\-]{4,30}[ \t]*\|\|)/
+    var firstRecordLines = records[0] splitBy /(?:\r\n|\n|\r)/
+    var headerLine = (firstRecordLines filter ((line) -> line contains "||"))[-1] default ""
     var headers = headerLine splitBy "||" map trim($)
     var dataRows = records[1 to -1] default []
     ---

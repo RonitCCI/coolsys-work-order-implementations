@@ -666,7 +666,7 @@ payload]]></ee:set-variable>
 									<ee:set-variable variableName="targetObjectKey"><![CDATA[%dw 2.0
 output application/java
 ---
-payload replace "wo_data/" with "wo_data/archive/"]]></ee:set-variable>
+payload replace "wo_data/pending/" with "wo_data/archive/"]]></ee:set-variable>
 									<ee:set-variable variableName="bucketName"><![CDATA[%dw 2.0
 output application/json
 ---
