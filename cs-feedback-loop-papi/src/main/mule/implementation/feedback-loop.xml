@@ -665,8 +665,14 @@ output application/java
 payload]]></ee:set-variable>
 									<ee:set-variable variableName="targetObjectKey"><![CDATA[%dw 2.0
 output application/java
+var timestamp = now() as String {format: "yyyyMMdd_HHmmss"}
+var archivedPath = payload replace "wo_data/pending/" with "wo_data/archive/"
+var parts = archivedPath splitBy "."
 ---
-payload replace "wo_data/pending/" with "wo_data/archive/"]]></ee:set-variable>
+if (sizeOf(parts) > 1)
+    (parts[0 to -2] joinBy ".") ++ "_" ++ timestamp ++ "." ++ parts[-1]
+else
+    archivedPath ++ "_" ++ timestamp]]></ee:set-variable>
 									<ee:set-variable variableName="bucketName"><![CDATA[%dw 2.0
 output application/json
 ---
