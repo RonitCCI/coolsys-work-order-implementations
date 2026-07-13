@@ -11,4 +11,4 @@ s3:
   bucketName: "coolsys-mssql-aurora-private"
  
 outlook:
-  recipients: ["guransh.chaudhary@caeliusconsulting.com"]
+  recipients: ["developmenterrors@coolsys.com","guransh.chaudhary@caeliusconsulting.com"]

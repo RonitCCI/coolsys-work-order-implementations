@@ -70,7 +70,7 @@ output text/plain
 								message="#['Triggering missing files email notification...']" />
 
 							<set-variable variableName="customProcessName"
-								value="HVAC S3 File Fetch" doc:name="Set customProcessName" />
+								value="S3 File Fetch" doc:name="Set customProcessName" />
 							<flow-ref doc:name="send-email-notification-sub-flow"
 								name="send-email-notification-sub-flow"
 								doc:id="36a13ece-7d3f-43a1-8536-bdb676da8802" />
@@ -91,12 +91,12 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref
-			doc:name="get-object-sub-flow → rawFileContent (ApptNotes)"
+			doc:name="get-object-sub-flow : rawFileContent (ApptNotes)"
 			doc:id="86ea0ec7-5bb7-4686-a7e2-8d45235d46df"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
-			doc:name="Parse ApptNotes → notesData { headers, map }">
+			doc:name="Parse ApptNotes : notesData { headers, map }">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="notesData"><![CDATA[%dw 2.0
@@ -133,7 +133,7 @@ var scIdIdx = if (foundScIdIdx >= 0) foundScIdIdx else 0
 			</ee:variables>
 		</ee:transform>
 		<remove-variable variableName="rawFileContent"
-			doc:name="Discard rawFileContent — ApptNotes binary released" />
+			doc:name="Discard rawFileContent : ApptNotes binary released" />
 
 		<ee:transform doc:name="var: objectKey = OrderMaterials"
 			doc:id="2347a214-d199-4f7c-abf8-fe4eab9abf79">
@@ -146,12 +146,12 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref
-			doc:name="get-object-sub-flow → rawFileContent (OrderMaterials)"
+			doc:name="get-object-sub-flow : rawFileContent (OrderMaterials)"
 			doc:id="41ccbcc0-6e19-4c76-95a8-12e131acec4b"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
-			doc:name="Parse OrderMaterials → materialsJoinMap + uniqueMaterialCatalogEntries">
+			doc:name="Parse OrderMaterials : materialsJoinMap + uniqueMaterialCatalogEntries">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable
@@ -248,12 +248,12 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref
-			doc:name="get-object-sub-flow → rawFileContent (HeaderData)"
+			doc:name="get-object-sub-flow : rawFileContent (HeaderData)"
 			doc:id="219d7466-72b6-4dd5-92a9-d629dc0016c4"
 			name="get-object-sub-flow" target="rawFileContent" />
 
 		<ee:transform
-			doc:name="Parse HeaderData → headerParsed { headers, rows }">
+			doc:name="Parse HeaderData : headerParsed { headers, rows }">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="headerParsed"><![CDATA[%dw 2.0

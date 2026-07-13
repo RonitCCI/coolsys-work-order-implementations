@@ -1,3 +1,8 @@
 # Prod Configuration
 
 # API Configuration
+
+
+# Outlook summary recipients
+outlook:
+  recipients: ["developmenterrors@coolsys.com"]

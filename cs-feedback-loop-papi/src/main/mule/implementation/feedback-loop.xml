@@ -27,7 +27,7 @@
 			port="8082" />
 	</http:request-config>
 
-	<flow name="hvac-pipeline-scheduler-flow"
+	<flow name="embedding-pipeline-scheduler-flow"
 		doc:name="HVAC Pipeline — Daily Scheduler">
 		<scheduler doc:name="Every 3 months">
 			<scheduling-strategy>
@@ -698,7 +698,7 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 				</choice>
 
 				<set-variable variableName="customProcessName"
-					value="HVAC Service Calls Vector Seeding"
+					value="Service Calls Vector Seeding"
 					doc:name="Set customProcessName" />
 				<flow-ref doc:name="send-email-notification-sub-flow"
 					name="send-email-notification-sub-flow" />
@@ -1053,7 +1053,7 @@ output application/java
 							doc:name="Log: Complete" />
 
 						<set-variable variableName="customProcessName"
-							value="HVAC Materials Vector Seeding"
+							value="Materials Vector Seeding"
 							doc:name="Set customProcessName" />
 						<flow-ref doc:name="send-email-notification-sub-flow"
 							name="send-email-notification-sub-flow" />

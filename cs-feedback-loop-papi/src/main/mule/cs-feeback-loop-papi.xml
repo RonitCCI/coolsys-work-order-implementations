@@ -33,7 +33,7 @@ output application/json
 ---
 {
 	"status": "Accepted",
-	"message": "The HVAC Feedback Loop pipeline has been triggered successfully and is running in the background.",
+	"message": "The Feedback Loop pipeline has been triggered successfully and is running in the background.",
 	"correlationId": correlationId,
 	'timestamp': now()
 }
