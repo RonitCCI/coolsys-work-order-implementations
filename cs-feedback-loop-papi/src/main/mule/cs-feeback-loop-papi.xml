@@ -46,9 +46,8 @@ output application/json
 
 
 		<async doc:name="Async - Run Pipeline">
-			<flow-ref doc:name='hvac-pipeline-scheduler-flow'
-				doc:id="dcc83c42-6e5f-480f-96cf-4f19a78e7a01"
-				name="hvac-pipeline-scheduler-flow" />
+			<flow-ref doc:name='embedding-pipeline-scheduler-flow'
+				doc:id="dcc83c42-6e5f-480f-96cf-4f19a78e7a01" name="embedding-pipeline-scheduler-flow"/>
 		</async>
 	</flow>
 </mule>

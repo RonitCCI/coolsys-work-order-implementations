@@ -18,10 +18,10 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 			doc:name="Extract Execution Context (Errors vs Batch)">
 			<ee:variables>
 				<ee:set-variable variableName="execContext"><![CDATA[%dw 2.0
-output application/java
+output application/json
 
-// Safely check if the payload has batch result properties, bypassing strict typeOf checks
-var isBatchResult = (payload != null) and (payload.processedRecords != null or payload.totalRecords != null)
+// Safely check if the payload is an Object before checking for batch result properties
+var isBatchResult = (payload is Object) and (payload.processedRecords != null or payload.totalRecords != null)
 
 // Unwrap the Retry Exhausted error to fetch the real underlying problem
 var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) 

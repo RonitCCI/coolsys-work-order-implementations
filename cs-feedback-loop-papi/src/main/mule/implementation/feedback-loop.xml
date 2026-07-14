@@ -28,7 +28,7 @@
 	</http:request-config>
 
 	<flow name="embedding-pipeline-scheduler-flow"
-		doc:name="HVAC Pipeline — Daily Scheduler">
+		doc:name="HVAC Pipeline — Daily Scheduler" doc:id="1b21f358-34b9-49c6-a43f-261c9a2d8d85">
 		<scheduler doc:name="Every 3 months">
 			<scheduling-strategy>
 				<cron expression="${scheduler.cron}" />
@@ -937,9 +937,11 @@ vars.materialsNeedingEmbedding map ((mat) -> do {
 												<ee:variables>
 													<ee:set-variable
 														variableName="embeddingInput"><![CDATA[%dw 2.0
-                                                    output application/java
-                                                    ---
-                                                    { embeddings: vars.parsedRecord.materialEmbedInputTruncated }
+output application/java
+---
+{
+	embeddings: vars.parsedRecord.materialEmbedInputTruncated
+}
                                                     ]]></ee:set-variable>
 												</ee:variables>
 											</ee:transform>
@@ -960,13 +962,14 @@ vars.materialsNeedingEmbedding map ((mat) -> do {
 										doc:name="Append Vector &amp; Reserialize (JSON)">
 										<ee:message>
 											<ee:set-payload><![CDATA[%dw 2.0
-                                            output application/json
-                                            ---
-                                            vars.parsedRecord ++ {
-                                                item_embedding_literal: if (vars.materialEmbeddingResponse != null) 
-                                                    '[' ++ ((vars.materialEmbeddingResponse.embedding map (v) -> v as String {format: '0.00000000'}) joinBy ',') ++ ']' 
+output application/json
+---
+vars.parsedRecord ++ {
+	item_embedding_literal: if ( vars.materialEmbeddingResponse != null ) '[' ++ ((vars.materialEmbeddingResponse.embedding map (v) -> v as String {
+		format: '0.00000000'
+	}) joinBy ',') ++ ']' 
                                                 else null
-                                            }
+}
                                             ]]></ee:set-payload>
 										</ee:message>
 									</ee:transform>
@@ -981,9 +984,11 @@ vars.materialsNeedingEmbedding map ((mat) -> do {
 										doc:name="Pass Through &amp; Reserialize (JSON)">
 										<ee:message>
 											<ee:set-payload><![CDATA[%dw 2.0
-                                            output application/json
-                                            ---
-                                            vars.parsedRecord ++ { item_embedding_literal: null }
+output application/json
+---
+vars.parsedRecord ++ {
+	item_embedding_literal: null
+}
                                             ]]></ee:set-payload>
 										</ee:message>
 									</ee:transform>
@@ -1026,12 +1031,12 @@ output application/java
                                                 ]]></ee:set-variable>
 												<ee:set-variable
 													variableName="requestPayload"><![CDATA[%dw 2.0
-                                                output application/json
-                                                ---
-                                                {
-                                                    sql: "UPDATE hvac_materials_v3 SET item_embedding = CAST(:item_embedding_literal AS vector), updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
-                                                    parameters: vars.materialEmbeddingUpdateRows
-                                                }
+output application/json
+---
+{
+	sql: "UPDATE hvac_materials_v3 SET item_embedding = CAST(:item_embedding_literal AS vector), updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
+	parameters: vars.materialEmbeddingUpdateRows
+}
                                                 ]]></ee:set-variable>
 											</ee:variables>
 										</ee:transform>
@@ -1097,7 +1102,7 @@ output application/json
 output application/json
 ---
 {
-    sql: "CREATE INDEX IF NOT EXISTS idx_hvac_materials_v3_catalog_embedding ON hvac_materials_v3 USING ivfflat (item_embedding vector_cosine_ops) WITH (lists = 100);"
+	sql: "CREATE INDEX IF NOT EXISTS idx_hvac_materials_v3_catalog_embedding ON hvac_materials_v3 USING ivfflat (item_embedding vector_cosine_ops) WITH (lists = 100);"
 }]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
