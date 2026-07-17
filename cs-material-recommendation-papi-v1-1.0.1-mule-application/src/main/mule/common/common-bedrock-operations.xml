@@ -8,9 +8,7 @@ http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mu
 	<sub-flow name="common-bedrock-operations-sub-flow" doc:id="869a2451-22a4-4809-a966-340590d49d84" >
 		<logger level="INFO" doc:name="START" doc:id="d193f226-e056-425f-ac13-7593d65835dc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
 		<try doc:name="Try: Generate Embeddings" doc:id="2df27cc1-7142-4bec-a8da-75ce4d2184ab" >
-			<ms-bedrock:embedding-generate-from-text doc:name="Embedding generate from text" doc:id="4cce5e1d-a4a6-42d6-b56d-0625764567e0" config-ref="Amazon_Bedrock_Configuration" prompt="#[payload]" modelName="amazon.titan-embed-text-v2:0">
-				<reconnect />
-		</ms-bedrock:embedding-generate-from-text>
+			<ms-bedrock:embedding-generate-from-text doc:name="Embedding generate from text" doc:id="4cce5e1d-a4a6-42d6-b56d-0625764567e0" config-ref="Amazon_Bedrock_Configuration" prompt="#[payload]" modelName="amazon.titan-embed-text-v2:0"/>
 			<error-handler >
 				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9174d3a9-3f69-494f-8159-0b28d3b2ce08" type="ANY">
 					<ee:transform doc:name="var: errorDetails" doc:id="028ae8e8-640d-469b-b2ab-1970d126756c">
@@ -20,7 +18,7 @@ http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mu
 output application/java
 ---
 {
-	appName: "Amazon Bedrock",
+	appName: "Amazon Bedrock (Titan Embedding)",
 	errorType: error.errorType.identifier default "CONNECTIVITY",
 	errorMessage: error.errorMessage.payload.value default error.detailedDescription,
 	correlationId: vars.correlationId default correlationId default uuid(),
@@ -35,5 +33,33 @@ output application/java
 		</try>
 		<logger level="INFO" doc:name="END" doc:id="7f23dfc9-254e-42d5-8ee8-3034758bed13" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
 	</sub-flow>
-	
+	<sub-flow name="common-bedrock-chat-operations-sub-flow" doc:id="9977eab9-98e2-42ac-b781-e56108749ef0" >
+		<logger level="INFO" doc:name="START" doc:id="33905b20-b9af-41e3-a8e2-19bd0d4586cc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
+		<try doc:name="Try" doc:id="7e186b96-bd1c-4c13-93e8-85a8fd73d729" >
+			<ms-bedrock:chat-answer-prompt doc:name="Chat answer prompt" doc:id="795df4eb-b847-4301-a8af-ee683d0aa88f" config-ref="Amazon_Bedrock_Configuration" prompt="#[vars.llmPrompt]" modelName="us.anthropic.claude-haiku-4-5-20251001-v1:0" awsAccountId="443938286325" maxTokenCount="4000" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9ed45ba1-e7eb-4cf9-adf1-66866eb935db" type="ANY" >
+					<ee:transform doc:name="var: errorDetails" doc:id="02fe6096-3937-48d6-951f-0f77cc58f054" >
+						<ee:message />
+						<ee:variables >
+							<ee:set-variable variableName="errorDetails" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	appName: "Amazon Bedrock (Claude)",
+	errorType: error.errorType.identifier default "CONNECTIVITY",
+	errorMessage: error.errorMessage.payload.value default error.detailedDescription,
+	correlationId: vars.correlationId default correlationId default uuid(),
+	timestamp:  ((now() >> "UTC") as String { format: "yyyy-MM-dd HH:mm:ss" })
+}
+]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<flow-ref doc:name="common-email-notification-sub-flow" doc:id="f9594fb4-b541-42a8-8381-a680d3bbedda" name="common-email-notification-sub-flow" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="END" doc:id="5678ea1a-fc5e-4f9d-b362-09ff843b8982" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]' />
+	</sub-flow>
+
 </mule>

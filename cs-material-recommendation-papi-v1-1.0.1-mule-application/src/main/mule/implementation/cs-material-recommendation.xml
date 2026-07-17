@@ -209,6 +209,208 @@ var suggested = ranked
 			</ee:message>
 		</ee:transform>
 
+		<ee:transform doc:name="var: systemPrompt" doc:id="f124764a-1748-4bcf-8b8b-fcc3c937936a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="systemPrompt" ><![CDATA[%dw 2.0
+output application/java
+---
+"You are a materials-recommendation normalizer for HVAC/refrigeration service work orders.
+
+You receive the raw JSON output of a vector-similarity material recommendation search. The
+\"suggested_materials\" array often contains multiple specific SKUs that are really the SAME
+functional component, differing only by spec (voltage, amperage, refrigerant type, model
+number, brand) - because the search engine doesn't know which exact model the equipment on
+site needs. Your job is to rewrite \"suggested_materials\" so each functional component appears
+ONCE, as a generic recommendation, while items that are already generic (fees, labor,
+consumables, freight, disposal, recovery charges) pass through unchanged.
+
+RULES:
+
+1. CLUSTER, don't string-match. Group items that represent the same functional part even if
+   their CATEGORY field is missing/null/inconsistent - use ITEMDESC semantics too.
+
+2. COLLAPSE each cluster into one entry with ITEMNMBR null, a generic ITEMDESC with an
+   equipment-dependent qualifier, the shared/most common CATEGORY, a synthesized REASONS
+   sentence, and similarity_score as the MAX score in the cluster.
+
+3. ALWAYS GENERALIZE inherently equipment-specific categories - CONTACTOR, GAS/REFRIGERANT,
+   FILTER-DRI, FILTER-OIL - even when only ONE SKU matched.
+
+4. DO NOT merge functionally different items just because they're loosely related.
+
+5. PASS THROUGH UNCHANGED any item where ITEMNMBR is null, CATEGORY is null, and the
+   description is already a generic line item (freight, fees, labor, disposal, recovery,
+   hardware, electrical connectors, etc).
+
+6. Sort the final \"suggested_materials\" array by similarity_score, descending.
+
+7. Preserve the exact input JSON schema - same top-level keys and per-item shape. Do not
+   add, rename, or remove fields.
+
+8. Output ONLY the JSON object. No prose, no markdown code fences, no commentary."]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="var: llmPrompt" doc:id="e663252f-3f8d-4865-9af2-047080233e65" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="llmPrompt" ><![CDATA[%dw 2.0
+output text/plain
+
+fun upperStr(s) = upper(s default "")
+
+// Fee recovery items should NEVER be suppressed
+fun isFeeItem(desc: String): Boolean = do {
+    var d = upperStr(desc)
+    ---
+    (d contains "RECOVERY") or (d contains "EPA-CAA") or (d contains "FEE")
+    or (d contains "DISPOSAL") or (d contains "ENVIRONMENTAL")
+    or (d contains "CHARGE") or (d contains "LABOR")
+}
+
+fun matchesGroup(desc: String, cat: String): String | Null = do {
+    var d = upperStr(desc)
+    var c = upperStr(cat)
+    var isRefrig =
+        (["GAS","REFRIGERANT","REFRIGERNT","FREON","REFRIG"] contains c)
+        or (d contains "REFRIGERANT") or (d contains "REFRIGERENT") or (d contains "REFRIGERNT") or (d contains "FREON") or (d contains "REFRIG")
+        or (d contains "R-22") or (d contains "R-404") or (d contains "R-410")
+        or (d contains "R-448") or (d contains "R-134") or (d contains "R-507")
+        or (d contains "R404A") or (d contains "R410A") or (d contains "R448A")
+        or (d contains "R134A") or (d contains "R507") or (d contains "R449A")
+    var refrigExcluded =
+        (d contains "CO2") or (d contains "NITROGEN") or (d contains "OXYGEN")
+        or (d contains "ACETYLENE") or (d contains "SILFOS") or (d contains "BRAZING")
+        or (d contains "SENSOR") or (d contains "DETECTOR") or (d contains "LEAK DETECT")
+        or (d contains "RECOVERY") or (d contains "RECLAIM")
+        or (d contains "FEE") or (d contains "EVACUATION")
+    ---
+    if (isRefrig and not refrigExcluded)        "REFRIGERANT"
+    else if ((["CONTACTOR","CONT"] contains c) or (d contains "CONTACTOR")) "CONTACTOR"
+    else if ((["COMP","COMPRESSOR","COMP PARTS"] contains c) or (d contains "COMPRESSOR")) "COMPRESSOR"
+    else if ((["DRIER","FILTER-DRI","FILTER-DRIER","DRIER SHEL","DRYER","DRIER SHELL"] contains c)
+             or (d contains "FILTER DRIER") or (d contains "FILTER-DRIER")
+             or (d contains "LIQUID LINE DRIER") or (d contains "SUCTION LINE DRIER")
+             or (d contains "DRIER CORE")) "FILTER-DRIER"
+    else if ((["FILTER-OIL"] contains c) or (d contains "OIL FILTER") or (d contains "OIL STRAINER")) "FILTER-OIL"
+    else if ((["MOTOR","FAN MOTOR","BLOWER MOTOR"] contains c)
+             or (d contains "FAN MOTOR") or (d contains "BLOWER MOTOR") or (d contains "CONDENSER MOTOR")) "MOTOR"
+    else if ((["CAPACITOR","CAP"] contains c)
+             or (d contains "RUN CAPACITOR") or (d contains "START CAPACITOR") or (d contains "DUAL CAPACITOR")) "CAPACITOR"
+    else if ((d contains "RECEIVER") or (d contains "LIQUID RECEIVER") or (d contains "SUCTION ACCUMULATOR")) "RECEIVER"
+    else if ((["DRIVE","VFD"] contains c)
+             or (d contains "VARIABLE FREQUENCY DRIVE") or (d contains "MOTOR DRIVE") or (d contains "VFD")) "DRIVE"
+    else if ((["KLIXON","OVERLOAD"] contains c)
+             or (d contains "KLIXON") or (d contains "THERMAL OVERLOAD") or (d contains "MOTOR PROTECTOR")) "KLIXON"
+    else if ((["DOOR","GASKET"] contains c)
+             or (d contains "DOOR GASKET") or (d contains "CASING SEAL") or (d contains "DOOR SEAL")) "DOOR-GASKET"
+    else if ((c == "RELAY") or (d contains "RELAY")) "RELAY"
+    else null
+}
+
+// Support both camelCase and snake_case representations dynamically
+var orderMaterials = vars.refinedPayload.orderMaterials default vars.refinedPayload.order_materials default payload.orderMaterials default payload.order_materials default []
+
+var suppressedGroups = (orderMaterials map (item) ->
+    matchesGroup(item.ITEMDESC default "", item.ItemCategory default "")
+) filter ($ != null)
+
+var finalSuppressedGroups = suppressedGroups
+
+var suggestedMaterials = payload.suggested_materials default []
+
+var filteredMaterials = suggestedMaterials filter (item) -> do {
+    var desc  = item.material_details.ITEMDESC default ""
+    var group = matchesGroup(desc, item.material_details.CATEGORY default "")
+    ---
+    // Fee recovery items bypass suppression entirely
+    isFeeItem(desc)
+    or not (finalSuppressedGroups contains group)
+}
+
+// Rebuild response ensuring suggested_materials is replaced cleanly and has no duplicate keys
+var filteredSearchResponse = payload mapObject (value, key) -> {
+    (key): if (key as String == "suggested_materials") filteredMaterials else value
+}
+
+var systemPrompt = "You are a materials-recommendation normalizer for HVAC/refrigeration service work orders.
+You will receive a JSON object with a 'suggested_materials' array.
+Suppression has already been applied — do NOT remove any items.
+ABSOLUTE RULE — FEES AND RECOVERY CHARGES ARE NEVER REMOVED:
+  The following item types must ALWAYS appear in the output, no exceptions:
+  - Refrigerant recovery fees (e.g. REFRIG RECOVERY(EPA-CAA), REFRIGERANT RECOVERY FEES)
+  - Environmental fees
+  - Disposal charges
+  - Any item whose ITEMDESC contains: recovery, fee, disposal, environmental, charge, EPA
+  These are billable service line items, not physical parts. They are never duplicates
+  of anything and must always pass through exactly unchanged.
+YOUR ONLY JOB:
+  - Generalize every item that has a specific SKU, model number, brand, voltage,
+    refrigerant type, or dimension in ITEMDESC. Rewrite it as a generic description.
+  - Deduplicate: if multiple items belong to the same functional group, collapse
+    them into ONE generic entry using the highest similarity_score.
+  - Pass through items that are already generic (null ITEMNMBR, null CATEGORY,
+    generic ITEMDESC like disposal, hardware, consumables, fees) exactly as-is.
+  - Sort output by similarity_score descending. Ties: ITEMDESC alphabetically ascending.
+GENERALIZATION RULES:
+  - Never copy a specific SKU, part number, model, brand, voltage, or refrigerant type name.
+  - Use these generic ITEMDESC formats:
+      Refrigerant — type and quantity to be confirmed from equipment nameplate
+      Contactor — voltage and amperage to be confirmed from equipment nameplate
+      Filter-Drier — core type and size to be confirmed from equipment specifications
+      Fan Motor — HP, voltage, and RPM to be confirmed from equipment nameplate
+      Capacitor — MFD and voltage to be confirmed from equipment nameplate
+      (follow the same pattern for any other component group)
+  - Set ITEMNMBR to null for all generalized items.
+  - Set CATEGORY to the canonical group name (GAS, CONTACTOR, FILTER-DRIER, MOTOR, etc.)
+  - Set REASONS to: <component> replacement is the primary need; matched <N> variants across similar calls
+  - Set similarity_score to the HIGHEST score among all items collapsed into this group.
+DEDUPLICATION:
+  - One output entry per functional group maximum.
+  - Exception: contactors — one entry per distinct voltage class (e.g. 208V and 120V separately).
+    If voltage is unclear or mixed, collapse all into one entry.
+OUTPUT FORMAT:
+  Output ONLY a valid JSON object. No prose, no markdown, no code fences.
+  First character must be '{', last must be '}'.
+  Schema:
+  {
+    Service_Call_ID: unchanged,
+    search_metadata: unchanged,
+    suggested_materials: [
+      {
+        similarity_score: number,
+        material_details: {
+          ITEMNMBR: null,
+          ITEMDESC: generic description,
+          CATEGORY: group or null,
+          REASONS: one sentence
+        }
+      }
+    ]
+  }"
+
+---
+systemPrompt
+++ "\n\nHere is the pre-filtered search response to generalize:\n\n"
+++ write(filteredSearchResponse, "application/json")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="common-bedrock-chat-operations-sub-flow" doc:id="40459b9d-a81d-4f10-87f3-1405d302bcb9" name="common-bedrock-chat-operations-sub-flow"/>
+		<ee:transform doc:name="Prepare Payload" doc:id="0a1b2229-0b1d-4e83-969f-202368754e2d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+// 1. Navigate to the first element in the content array
+// 2. Read the string content as JSON, omitting the markdown code blocks ("```json ... ```")
+read(
+    (payload."output".message.content[0].text replace "```json\n" with "" replace "\n```" with ""), 
+    "application/json"
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 		<logger level="INFO" doc:name="END" doc:id="cc88c047-a57e-471e-ac76-02e918b727c0"
 			message='#[%dw 2.0
 output application/json

@@ -9,9 +9,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<sub-flow name="common-http-request-sub-flow" doc:id="869a2451-22a4-4809-a966-340590d49d84" >
 		<logger level="INFO" doc:name="START" doc:id="d193f226-e056-425f-ac13-7593d65835dc" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "payload": payload,&#10;    "timestamp": now(),&#10;}]' />
 		<try doc:name="Try" doc:id="7283ddc8-cae0-4557-8320-8b355360485b" >
-			<http:request doc:name="db-sys-api" doc:id="76d0e8ea-7b07-4fc3-98f2-047567a76d27" method="#[vars.httpOperation.method]" path="#[vars.httpOperation.path]" config-ref="http-request-configuration">
-				<reconnect />
-		</http:request>
+			<http:request doc:name="db-sys-api" doc:id="76d0e8ea-7b07-4fc3-98f2-047567a76d27" method="#[vars.httpOperation.method]" path="#[vars.httpOperation.path]" config-ref="http-request-configuration" />
 			<error-handler >
 				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="33098581-6ced-44e5-b1b1-3b10b969b70a" type="ANY">
 					<ee:transform doc:name="var: errorDetails" doc:id="5365811d-7cdd-4d39-a0fb-64a8cbbb84ed" >
