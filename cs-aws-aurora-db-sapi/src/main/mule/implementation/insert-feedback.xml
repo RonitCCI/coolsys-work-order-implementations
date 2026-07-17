@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd">
+	
+	<sub-flow name="insert-feedback-sub-flow"
+		doc:id="1bbdbfd8-bb65-4c7b-98b1-70e5f0e8f172">
+		<logger level="INFO" doc:name="START"
+			doc:id="6f10ba51-453f-46c1-9de7-a58acf5fef60"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+		<db:bulk-insert doc:name="Insert Feedback"
+			doc:id="1e62b578-1f96-41a6-9507-6231d8e55e5a"
+			config-ref="cs-aws-aurora-sapi-database-config">
+			<db:bulk-input-parameters ><![CDATA[#[vars.initialPayload.parameters]]]></db:bulk-input-parameters>
+			<db:sql><![CDATA[#[output text/plain --- vars.initialPayload.sql]]]></db:sql>
+		</db:bulk-insert>
+		<logger level="INFO" doc:name="END"
+			doc:id="022b2c72-6dd5-48be-b62b-1cdec841be7e"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow "  ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+	
+</sub-flow>
+	
+</mule>

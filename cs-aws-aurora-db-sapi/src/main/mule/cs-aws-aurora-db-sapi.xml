@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+	
+	<flow name="cs-aws-aurora-db-sapi-main">
+		<http:listener path="${api.basePath}"
+			config-ref="coolsys-http-config" doc:name="api/v1/*">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:body><![CDATA[#[output json --- payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+		<ee:transform
+			doc:name="var: initialPayload, correlationId"
+			doc:id="9d55ab3e-e816-40a2-a553-3fabb2ed81e3">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="initialPayload"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-correlation-id' default correlationId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<apikit:router config-ref="cs-aws-aurora-db-sapi-config" />
+		<error-handler ref="common-exception-handler" />
+	</flow>
+	<flow
+		name="post:\feedback:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="insert-feedback-sub-flow"
+			doc:id="5566da4e-6831-42f3-981c-eaa14dc990dc"
+			name="insert-feedback-sub-flow" />
+	</flow>
+	<flow
+		name="post:\recommendations:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="fetch-recommendations-sub-flow"
+			doc:id="cc86b938-0da0-4caa-ba3e-b7ef9502cf32"
+			name="fetch-recommendations-sub-flow" />
+	</flow>
+	<flow
+		name="put:\feedback\updateFeedback:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="update-recommendations-sub-flow"
+			doc:id="6f588621-562e-4356-a95c-360db6627e0c"
+			name="update-recommendations-sub-flow" />
+	</flow>
+	<flow
+		name="delete:\feedback\deleteFeedback:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="delete-recommendations-sub-flow"
+			doc:id="96efe74d-b094-4934-97f3-4f7d1c8f27c3"
+			name="delete-recommendations-sub-flow" />
+	</flow>
+	<flow
+		name="post:\feedback\ddl:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="execute-ddl-sub-flow"
+			doc:id="8742b325-cf72-43b1-bdc8-9fc8bf15a130"
+			name="execute-ddl-sub-flow" />
+	</flow>
+	<flow
+		name="post:\feedback\query:application\json:cs-aws-aurora-db-sapi-config">
+		<flow-ref doc:name="query-recommendations-sub-flow"
+			doc:id="0f8c2f81-91fc-4b35-b06c-9558fca84108"
+			name="query-recommendations-sub-flow" />
+	</flow>
+</mule>

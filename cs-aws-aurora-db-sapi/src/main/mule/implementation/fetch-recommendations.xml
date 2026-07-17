@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:aws-secrets-manager-properties-override="http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override/current/mule-aws-secrets-manager-properties-override.xsd">
+			
+	<sub-flow name="fetch-recommendations-sub-flow"
+		doc:id="df606f57-f141-48ca-82da-539c458117dc">
+		<logger level="INFO" doc:name="START"
+			doc:id="e6d67843-a2db-4650-aa10-4cf40ad0a1f2"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+		<db:select doc:name="Get Records"
+			doc:id="6587b841-91e0-4317-b2a8-14003fc157ce"
+			config-ref="cs-aws-aurora-sapi-database-config">
+			<db:sql><![CDATA[#[vars.initialPayload.query]]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="END"
+			doc:id="7bdea93a-3b10-4c68-8d14-7b86692e52fb"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+	</sub-flow>
+
+</mule>

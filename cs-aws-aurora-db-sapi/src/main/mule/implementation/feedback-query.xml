@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<sub-flow name="query-recommendations-sub-flow" doc:id="31565384-1707-4295-b825-258751bf816d" >
+		<logger level="INFO" doc:name="START" doc:id="f671ced2-238c-42bd-94d6-af46e6e5bb3c" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+		<db:select doc:name="Get Records" doc:id="1565155d-04e5-4413-9df4-34aac3598621" config-ref="cs-aws-aurora-sapi-database-config" >
+			<db:sql ><![CDATA[#[output text/plain --- vars.initialPayload.sql]]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.initialPayload.parameters]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="END" doc:id="5c61b263-0756-4b7d-9cf0-a1933e732740" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+	</sub-flow>
+</mule>

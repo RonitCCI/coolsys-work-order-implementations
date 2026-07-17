@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:aws-secrets-manager-properties-override="http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:adtalem-core="http://www.mulesoft.org/schema/mule/adtalem-core"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/adtalem-core http://www.mulesoft.org/schema/mule/adtalem-core/current/mule-adtalem-core.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override/current/mule-aws-secrets-manager-properties-override.xsd">
+
+	<configuration doc:name="Configuration"
+		doc:id="da15166a-5d9d-4b77-a80d-4743c6e90e45"
+		defaultErrorHandler-ref="common-exception-handler" />
+
+	<apikit:config name="cs-aws-aurora-db-sapi-config"
+		api="resource::36cd1ce8-e608-4255-875d-0b7eb18519cd:cs-aws-aurora-db-sapi:1.0.6:raml:zip:cs-aws-aurora-db-sapi.raml"
+		outboundHeadersMapName="outboundHeaders"
+		httpStatusVarName="httpStatus" disableValidations="true" />
+	<http:listener-config name="coolsys-http-config"
+		doc:name="HTTP Listener config"
+		doc:id="3e59396c-d875-46b7-be4e-4a5aff2dcbe7">
+		<http:listener-connection host="${http.host}"
+			port="${http.private.port}" readTimeout="${http.readTimeout}" />
+	</http:listener-config>
+
+	<!-- <api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" 
+		doc:name="API Autodiscovery" doc:id="4edcc4f1-e1b8-4116-bd34-559f50c97ce0" 
+		flowRef="cs-aws-aurora-db-sapi-main" /> -->
+	<aws-secrets-manager-properties-override:config
+		name="aws-secrets-manager-properties"
+		doc:name="AWS Secrets Manager Properties Override">
+		<aws-secrets-manager-properties-override:basic-connection
+			accessKey="${awsSecretsAccessKey}"
+			secretKey="${awsSecretsAccessSecret}" region="us-east-1" />
+	</aws-secrets-manager-properties-override:config>
+	<!-- Region Property is erroring out -->
+
+
+	<db:config name="cs-aws-aurora-sapi-database-config"
+		doc:name="Database Config">
+
+		<db:generic-connection url="${aws.jdbc}"
+			driverClassName="org.postgresql.Driver"
+			password="#[read(p('aws-secrets::rds!cluster-72b56557-20f4-45b3-aad2-c62c505a4d52'),&quot;application/json&quot;).password]"
+			user="#[read(p('aws-secrets::rds!cluster-72b56557-20f4-45b3-aad2-c62c505a4d52'),&quot;application/json&quot;).username]">
+
+			<reconnection>
+				<reconnect frequency="5000" />
+			</reconnection>
+
+		</db:generic-connection>
+	</db:config>
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="635757b2-ca5a-4fe5-8660-6eea74a68893"
+		file="properties\config-${mule.env}.yaml" />
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="7ca124a6-05fc-4e20-a0ca-3722ec715151"
+		file="properties\common/common.yaml" />
+	<secure-properties:config
+		name="Secure_Properties_Config" doc:name="Secure Properties Config"
+		doc:id="598b756e-1e49-47ee-9754-a42c603a469a"
+		file="properties\secure\config-${mule.env}-secure.yaml"
+		key="${mule.key}" />
+	
+</mule>

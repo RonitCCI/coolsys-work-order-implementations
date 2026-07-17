@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<sub-flow name="execute-ddl-sub-flow" doc:id="a652d79a-8cd2-4fc6-aa6d-535a179c4e5f" >
+		<logger level="INFO" doc:name="START" doc:id="2eefc4ff-4f48-476b-b70a-4531cb698dc5" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+		<db:execute-ddl doc:name="Execute DDL- Vector Indexes" doc:id="6951b382-8386-4cdc-a5f5-6722c40d12e6" config-ref="cs-aws-aurora-sapi-database-config">
+			<db:sql ><![CDATA[#[output text/plain --- vars.initialPayload.sql]]]></db:sql>
+		</db:execute-ddl>
+		<logger level="INFO" doc:name="END" doc:id="7eb883e3-4f91-4031-8a2f-17a94231d86a" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow " ++ flow.name,&#10;	"timestamp": now(),&#10;}]' />
+	</sub-flow>
+</mule>
