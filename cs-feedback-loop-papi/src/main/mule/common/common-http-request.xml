@@ -1,22 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
 	<sub-flow name="common-request-sub-flow"
-		doc:id="c5fc623f-bfaf-4a75-bde0-687b52e45a5a">
-		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="d2837b47-5de2-4ec5-bee5-3e8e6d1935e7" >
-			<http:request method="#[vars.httpOperation.method]" 
-			doc:name="Common Request" doc:id="9be59774-e1a3-43cf-8a0c-a9aab9968d33" config-ref="http-request-configuration" 
-			sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]" path="#[vars.httpOperation.path]"> 
-			<reconnect frequency="5000" count="3" /> <http:body><![CDATA[#[vars.requestPayload]]]></http:body> 
-			<http:headers><![CDATA[#[vars.httpOperation.headers default {}]]]></http:headers> 
-			<http:uri-params><![CDATA[#[vars.httpOperation.uriParams default {}]]]></http:uri-params> 
-			<http:query-params><![CDATA[#[vars.httpOperation.queryParams default {}]]]></http:query-params> 
+		doc:id="b789fcdf-f2d0-4b1e-b79b-e121e381e50f">
+		<until-successful maxRetries="5"
+			doc:name="Until Successful"
+			doc:id="ece321c7-e28f-4b39-81d3-4160c3afa121">
+			<http:request method="#[vars.httpOperation.method]"
+				doc:name="Common Request"
+				doc:id="2bb71d30-a9e0-4f17-9639-d79556dee60f"
+				config-ref="http-request-configuration" sendCorrelationId="ALWAYS"
+				correlationId="#[vars.correlationId]"
+				path="#[vars.httpOperation.path]">
+				<reconnect frequency="5000" count="3" />
+				<http:body><![CDATA[#[vars.requestPayload]]]></http:body>
+				<http:headers><![CDATA[#[vars.httpOperation.headers default {}]]]></http:headers>
+				<http:uri-params><![CDATA[#[vars.httpOperation.uriParams default {}]]]></http:uri-params>
+				<http:query-params><![CDATA[#[vars.httpOperation.queryParams default {}]]]></http:query-params>
 			</http:request>
 		</until-successful>
+
+		<!-- STREAM CONSUMPTION: Forces stream read to close HTTP connection and 
+			release memory buffer -->
+		<ee:transform doc:name="Prepare Payload"
+			doc:id="be29f8eb-9f5c-4cc7-b201-85eab1432341">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</sub-flow>
 </mule>

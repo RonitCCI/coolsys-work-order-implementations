@@ -28,18 +28,19 @@
 	</http:request-config>
 
 	<flow name="embedding-pipeline-scheduler-flow"
-		doc:name="HVAC Pipeline — Daily Scheduler" doc:id="1b21f358-34b9-49c6-a43f-261c9a2d8d85">
+		doc:name="HVAC Pipeline — Daily Scheduler"
+		doc:id="a3aa7aa2-2dae-4207-bf14-2abebac72004">
 		<scheduler doc:name="Every 3 months">
 			<scheduling-strategy>
 				<cron expression="${scheduler.cron}" />
 			</scheduling-strategy>
 		</scheduler>
 		<logger level="INFO" doc:name="START"
-			doc:id="fbbf61ff-4ea2-412c-83e4-34d393988245"
+			doc:id="cf73b252-01dd-457d-a2ff-0c02f782ccb9"
 			message="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	'correlationId': vars.correlationId default correlationId,&#10;	'appName': app.name,&#10;	'flow': flow.name,&#10;	'message': 'Start of flow ' ++ flow.name,&#10;	'timestamp': now()&#10;}]" />
 
 		<flow-ref doc:name="get-s3-files-sub-flow"
-			doc:id="84045c3a-6a71-4830-8b15-c72a6d5c578d"
+			doc:id="b10655b9-f878-4366-bdaf-f48354dc5b0b"
 			name="get-s3-files-sub-flow" />
 		<logger level="INFO"
 			message="#['Loaded ' ++ (sizeOf(vars.headerParsed.rows) as String) ++ ' service call records']"
@@ -77,7 +78,7 @@
 
 		<ee:transform
 			doc:name="var: allRecords (join headerParsed + notesData + materialsJoinMap)"
-			doc:id="602beca3-2b60-4307-9632-d056035deb8f">
+			doc:id="32be9946-9715-4bf2-8054-d27539b54b0f">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="allRecords"><![CDATA[%dw 2.0
@@ -121,7 +122,7 @@ write((vars.allRecords map (rec) -> (rec.Service_Call_ID default '')) filter (id
 
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (Query Embedded Calls)"
-			doc:id="fb24211b-0941-4eda-aea2-5e96f8adc1f8">
+			doc:id="7217305f-c2f1-476e-95f7-57e9f79c42a0">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -138,7 +139,7 @@ output application/json
 output application/json
 ---
 {
-    sql: "SELECT service_call_id FROM service_calls_v3 WHERE search_embedding IS NOT NULL AND service_call_id IN (SELECT jsonb_array_elements_text(:serviceCallIdentifiersJson::jsonb))",
+    sql: "SELECT service_call_id FROM $(p('tables.serviceCalls')) WHERE search_embedding IS NOT NULL AND service_call_id IN (SELECT jsonb_array_elements_text(:serviceCallIdentifiersJson::jsonb))",
     parameters: {
         serviceCallIdentifiersJson: vars.serviceCallIdentifiersJson
     }
@@ -147,7 +148,7 @@ output application/json
 		</ee:transform>
 
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="998ffffe-ba4e-46f7-872c-4f5076c44c91"
+			doc:id="fcf5df80-d48b-4b1e-a91f-f576c0116842"
 			name="common-request-sub-flow" />
 
 		<ee:transform doc:name="Prepare Payload">
@@ -345,14 +346,17 @@ output application/java
 										</ee:variables>
 									</ee:transform>
 									<flow-ref name="common-bedrock-request-sub-flow"
-										target="serviceEmbeddingResponse" doc:name="common-bedrock-request-sub-flow"/>
+										target="serviceEmbeddingResponse"
+										doc:name="common-bedrock-request-sub-flow" />
 								</until-successful>
 								<error-handler>
 									<on-error-continue type="ANY">
 										<logger level="WARN"
-											message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for service call: ' ++ (vars.parsedRecord.serviceCallId default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]" doc:name="Log: Error"/>
+											message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for service call: ' ++ (vars.parsedRecord.serviceCallId default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]"
+											doc:name="Log: Error" />
 										<set-variable
-											variableName="serviceEmbeddingResponse" value="#[null]" doc:name="Set Embedding Response"/>
+											variableName="serviceEmbeddingResponse" value="#[null]"
+											doc:name="Set Embedding Response" />
 									</on-error-continue>
 								</error-handler>
 							</try>
@@ -431,7 +435,7 @@ var records = payload map (read($, 'application/json'))
 							doc:name="Log — persisting service call block" />
 
 						<ee:transform
-							doc:name="vars: httpOperation, requestPayload (Bulk Upsert service_calls_v3)">
+							doc:name="vars: httpOperation, requestPayload (Bulk Upsert service_calls)">
 							<ee:variables>
 								<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
                                 output application/json
@@ -445,12 +449,12 @@ var records = payload map (read($, 'application/json'))
                                 }
                                 ]]></ee:set-variable>
 								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                output application/json
-                                ---
-                                {
-                                    sql: "INSERT INTO service_calls_v3 (service_call_id, service_description, problem_desc, custnmbr, adrscode, division, combined_notes) VALUES (:service_call_id, :service_description, :problem_desc, :custnmbr, :adrscode, :division, :combined_notes) ON CONFLICT (service_call_id) DO UPDATE SET service_description = EXCLUDED.service_description, problem_desc = EXCLUDED.problem_desc, custnmbr = EXCLUDED.custnmbr, adrscode = EXCLUDED.adrscode, division = EXCLUDED.division, combined_notes = EXCLUDED.combined_notes, updated_at = NOW()",
-                                    parameters: vars.serviceCallBlock.serviceCallRows
-                                }
+output application/json
+---
+{
+	sql: "INSERT INTO $(p('tables.serviceCalls')) (service_call_id, service_description, problem_desc, custnmbr, adrscode, division, combined_notes) VALUES (:service_call_id, :service_description, :problem_desc, :custnmbr, :adrscode, :division, :combined_notes) ON CONFLICT (service_call_id) DO UPDATE SET service_description = EXCLUDED.service_description, problem_desc = EXCLUDED.problem_desc, custnmbr = EXCLUDED.custnmbr, adrscode = EXCLUDED.adrscode, division = EXCLUDED.division, combined_notes = EXCLUDED.combined_notes, updated_at = NOW()",
+	parameters: vars.serviceCallBlock.serviceCallRows
+}
                                 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
@@ -475,12 +479,12 @@ var records = payload map (read($, 'application/json'))
                                         }
                                         ]]></ee:set-variable>
 										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                        output application/json
-                                        ---
-                                        {
-                                            sql: "UPDATE service_calls_v3 SET search_embedding = CAST(:vec_literal AS vector), updated_at = NOW() WHERE service_call_id = :service_call_id",
-                                            parameters: vars.serviceCallBlock.embeddingUpdateRows
-                                        }
+output application/json
+---
+{
+	sql: "UPDATE $(p('tables.serviceCalls')) SET search_embedding = CAST(:vec_literal AS vector), updated_at = NOW() WHERE service_call_id = :service_call_id",
+	parameters: vars.serviceCallBlock.embeddingUpdateRows
+}
                                         ]]></ee:set-variable>
 									</ee:variables>
 								</ee:transform>
@@ -504,12 +508,14 @@ var records = payload map (read($, 'application/json'))
                                 }
                                 ]]></ee:set-variable>
 								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                output application/json
-                                ---
-                                {
-                                    sql: "DELETE FROM hvac_appointments_v3 WHERE service_call_id = :serviceCallId",
-                                    parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> { "serviceCallId": id })
-                                }
+output application/json
+---
+{
+	sql: "DELETE FROM $(p('tables.hvacAppointments')) WHERE service_call_id = :serviceCallId",
+	parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> {
+		"serviceCallId": id
+	})
+}
                                 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
@@ -534,12 +540,12 @@ var records = payload map (read($, 'application/json'))
                                         }
                                         ]]></ee:set-variable>
 										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                        output application/json
-                                        ---
-                                        {
-                                            sql: "INSERT INTO hvac_appointments_v3 (service_call_id, appt_number, office_notes, summary_notes, onsite_start_time, onsite_stop_time, status, followup_reason) VALUES (:service_call_id, :appt_number, :office_notes, :summary_notes, CAST(:onsite_start_time AS TIMESTAMPTZ), CAST(:onsite_stop_time AS TIMESTAMPTZ), :status, :followup_reason)",
-                                            parameters: vars.serviceCallBlock.appointmentRows
-                                        }
+output application/json
+---
+{
+	sql: "INSERT INTO $(p('tables.hvacAppointments')) (service_call_id, appt_number, office_notes, summary_notes, onsite_start_time, onsite_stop_time, status, followup_reason) VALUES (:service_call_id, :appt_number, :office_notes, :summary_notes, CAST(:onsite_start_time AS TIMESTAMPTZ), CAST(:onsite_stop_time AS TIMESTAMPTZ), :status, :followup_reason)",
+	parameters: vars.serviceCallBlock.appointmentRows
+}
                                         ]]></ee:set-variable>
 									</ee:variables>
 								</ee:transform>
@@ -563,12 +569,14 @@ var records = payload map (read($, 'application/json'))
                                 }
                                 ]]></ee:set-variable>
 								<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                output application/json
-                                ---
-                                {
-                                    sql: "DELETE FROM hvac_service_items_v3 WHERE service_call_id = :serviceCallId AND was_recommended = FALSE",
-                                    parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> { "serviceCallId": id })
-                                }
+output application/json
+---
+{
+	sql: "DELETE FROM $(p('tables.hvacServiceItems')) WHERE service_call_id = :serviceCallId AND was_recommended = FALSE",
+	parameters: vars.serviceCallBlock.serviceCallIds map ((id) -> {
+		"serviceCallId": id
+	})
+}
                                 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
@@ -593,12 +601,12 @@ var records = payload map (read($, 'application/json'))
                                         }
                                         ]]></ee:set-variable>
 										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                        output application/json
-                                        ---
-                                        {
-                                            sql: "INSERT INTO hvac_service_items_v3 (service_call_id, material_id, trxqty, billing_amount, was_recommended) VALUES (:service_call_id, CAST(:material_id AS uuid), :trxqty, :billing_amount, FALSE)",
-                                            parameters: vars.serviceCallBlock.serviceItemRows
-                                        }
+output application/json
+---
+{
+	sql: "INSERT INTO $(p('tables.hvacServiceItems')) (service_call_id, material_id, trxqty, billing_amount, was_recommended) VALUES (:service_call_id, CAST(:material_id AS uuid), :trxqty, :billing_amount, FALSE)",
+	parameters: vars.serviceCallBlock.serviceItemRows
+}
                                         ]]></ee:set-variable>
 									</ee:variables>
 								</ee:transform>
@@ -620,12 +628,12 @@ var records = payload map (read($, 'application/json'))
                                         }
                                         ]]></ee:set-variable>
 										<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
-                                        output application/json
-                                        ---
-                                        {
-                                            sql: "UPDATE hvac_materials_v3 SET usage_count = COALESCE(usage_count, 0) + 1, updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
-                                            parameters: vars.serviceCallBlock.materialIdsToIncrement
-                                        }
+output application/json
+---
+{
+	sql: "UPDATE $(p('tables.hvacMaterials')) SET usage_count = COALESCE(usage_count, 0) + 1, updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
+	parameters: vars.serviceCallBlock.materialIdsToIncrement
+}
                                         ]]></ee:set-variable>
 									</ee:variables>
 								</ee:transform>
@@ -699,13 +707,13 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 
 				<set-variable variableName="customProcessName"
 					value="Service Calls Vector Seeding"
-					doc:name="Set customProcessName" />
+					doc:name="customProcessName" />
 				<flow-ref doc:name="send-email-notification-sub-flow"
 					name="send-email-notification-sub-flow" />
 
 				<flow-ref name="create-index-loop-sub-flow"
 					doc:name="create-index-loop-sub-flow"
-					doc:id="55d3d0e4-cedc-4fae-8b53-508dfe47f6cc" />
+					doc:id="6d85ea08-5783-4466-ae68-b1a89ac9f099" />
 				<logger level="INFO" doc:name="END"
 					message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
 			</batch:on-complete>
@@ -714,11 +722,11 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 
 	<sub-flow name="seed-hvac-materials-flow"
 		doc:name="Seed HVAC Materials (Bulk-Optimized)">
-		<logger level="INFO" message="Seeding hvac_materials_v3."
+		<logger level="INFO" message="Seeding materials."
 			doc:name="Seeding started" />
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (create unique index DDL)"
-			doc:id="161b60db-06db-41cc-9baa-c3bbe64bf6fe">
+			doc:id="8f69aaff-361f-4da9-979d-bceea63e8a69">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -735,12 +743,12 @@ output application/json
 output application/json
 ---
 {
-    sql: "CREATE UNIQUE INDEX IF NOT EXISTS uq_hvac_materials_v3_desc ON hvac_materials_v3 (LOWER(itemdesc));"
+    sql: "CREATE UNIQUE INDEX IF NOT EXISTS uq_hvac_materials_v3_desc ON $(p('tables.hvacMaterials')) (LOWER(itemdesc));"
 }]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="efa8a53b-907f-4166-bab4-23efed2822a0"
+			doc:id="8b24828c-a5f0-49b2-8cc7-ffdeab9e0d03"
 			name="common-request-sub-flow" />
 
 		<logger level="INFO"
@@ -760,7 +768,7 @@ write((vars.uniqueMaterialCatalogEntries default []) map (m) -> m.materialKey, '
 
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (Query Existing Materials)"
-			doc:id="9e1389ba-1229-4c20-a1fb-1476f847843b">
+			doc:id="cf255f57-41e2-4bbd-8e38-cd3b7d97f33f">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -777,7 +785,7 @@ output application/json
 output application/json
 ---
 {
-    sql: "SELECT material_id::text AS material_id, LOWER(itemdesc) AS material_key, (item_embedding IS NOT NULL) AS has_embedding FROM hvac_materials_v3 WHERE LOWER(itemdesc) IN (SELECT jsonb_array_elements_text(:materialKeysJson::jsonb))",
+    sql: "SELECT material_id::text AS material_id, LOWER(itemdesc) AS material_key, (item_embedding IS NOT NULL) AS has_embedding FROM $(p('tables.hvacMaterials')) WHERE LOWER(itemdesc) IN (SELECT jsonb_array_elements_text(:materialKeysJson::jsonb))",
     parameters: {
         materialKeysJson: vars.uniqueMaterialKeysJson
     }
@@ -785,11 +793,10 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="28f26841-de79-47ec-96ce-dd23d843357f"
+			doc:id="4d6ec88c-5871-4d57-af31-b22aa94ba4ae"
 			name="common-request-sub-flow" />
 
-		<ee:transform
-			doc:name="Prepare Existing HVAC Materials">
+		<ee:transform doc:name="Prepare Existing HVAC Materials">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/java
@@ -828,7 +835,7 @@ do {
 				expression="#[not isEmpty(vars.materialSeedingPlan.newMaterialCatalogEntries)]">
 				<ee:transform
 					doc:name="vars: httpOperation, requestPayload (Insert into hvac_materials)"
-					doc:id="883dfe5a-15e5-4ae0-9e51-59adbedb3560">
+					doc:id="bfea65eb-6032-497c-a977-f47b3223d80f">
 					<ee:message />
 					<ee:variables>
 						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -845,21 +852,20 @@ output application/json
 output application/json
 ---
 {
-    sql: "INSERT INTO hvac_materials_v3 (material_id, itemnmbr, itemdesc, item_category) VALUES (CAST(:material_id AS uuid), :itemnmbr, :itemdesc, :item_category) ON CONFLICT (LOWER(itemdesc)) DO UPDATE SET itemnmbr = EXCLUDED.itemnmbr, item_category = EXCLUDED.item_category, updated_at = NOW()",
+    sql: "INSERT INTO $(p('tables.hvacMaterials')) (material_id, itemnmbr, itemdesc, item_category) VALUES (CAST(:material_id AS uuid), :itemnmbr, :itemdesc, :item_category) ON CONFLICT (LOWER(itemdesc)) DO UPDATE SET itemnmbr = EXCLUDED.itemnmbr, item_category = EXCLUDED.item_category, updated_at = NOW()",
     parameters: vars.materialSeedingPlan.newMaterialCatalogEntries
 }]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
 				<flow-ref doc:name="common-request-sub-flow"
-					doc:id="a2038dec-75eb-4750-99c6-1b21cad09334"
+					doc:id="025340c2-efbd-4b5c-8426-768f2e54cf59"
 					name="common-request-sub-flow" />
 				<logger level="INFO"
 					message="#['UPSERT catalog (bulk): ' ++ (sizeOf(vars.materialSeedingPlan.newMaterialCatalogEntries) as String) ++ ' new material(s)']"
 					doc:name="Log — new materials upserted (bulk)" />
 			</when>
 			<otherwise>
-				<logger level="INFO"
-					message="No new materials to upsert into hvac_materials_v3"
+				<logger level="INFO" message="No new materials to upsert"
 					doc:name="No new materials" />
 			</otherwise>
 		</choice>
@@ -951,9 +957,11 @@ output application/java
 										<error-handler>
 											<on-error-continue type="ANY">
 												<logger level="WARN"
-													message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for material: ' ++ (vars.parsedRecord.itemdesc default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]" doc:name="Log: Error Message"/>
+													message="#[var actualError = if (error != null and error.errorType != null and error.errorType.identifier == 'RETRY_EXHAUSTED' and sizeOf(error.suppressedErrors default []) > 0) error.suppressedErrors[-1] else error --- 'Bedrock embedding failed after retries for material: ' ++ (vars.parsedRecord.itemdesc default 'Unknown') ++ '. Reason: ' ++ (actualError.description default 'Unknown')]"
+													doc:name="Log: Error Message" />
 												<set-variable
-													variableName="materialEmbeddingResponse" value="#[null]" doc:name="Set Error Response"/>
+													variableName="materialEmbeddingResponse" value="#[null]"
+													doc:name="Set Error Response" />
 											</on-error-continue>
 										</error-handler>
 									</try>
@@ -1034,7 +1042,7 @@ output application/java
 output application/json
 ---
 {
-	sql: "UPDATE hvac_materials_v3 SET item_embedding = CAST(:item_embedding_literal AS vector), updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
+	sql: "UPDATE $(p('tables.hvacMaterials')) SET item_embedding = CAST(:item_embedding_literal AS vector), updated_at = NOW() WHERE material_id = CAST(:material_id AS uuid)",
 	parameters: vars.materialEmbeddingUpdateRows
 }
                                                 ]]></ee:set-variable>
@@ -1058,8 +1066,7 @@ output application/json
 							doc:name="Log: Complete" />
 
 						<set-variable variableName="customProcessName"
-							value="Materials Vector Seeding"
-							doc:name="Set customProcessName" />
+							value="Materials Vector Seeding" doc:name="Set customProcessName" />
 						<flow-ref doc:name="send-email-notification-sub-flow"
 							name="send-email-notification-sub-flow" />
 					</batch:on-complete>
@@ -1077,7 +1084,7 @@ output application/json
 	</sub-flow>
 
 	<sub-flow name="create-index-loop-sub-flow"
-		doc:id="92db6cba-18e1-4087-afb2-70f57cfc3beb">
+		doc:id="a9b1d68c-7ebc-485d-960b-1f6d4a4d7306">
 		<logger level="INFO"
 			message="Creating IVFFlat vector indexes..."
 			doc:name="IVFFlat index creation started" />
@@ -1085,7 +1092,7 @@ output application/json
 			doc:name="Try — IVFFlat index creation (non-fatal on timeout)">
 			<ee:transform
 				doc:name="vars: httpOperation, requestPayload (Create DDL Index for hvac_materials)"
-				doc:id="b19c103b-ae7d-4222-8583-97651c455a20">
+				doc:id="3c3aa6da-8c74-4528-86d1-270b8c140c9f">
 				<ee:message />
 				<ee:variables>
 					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -1102,17 +1109,17 @@ output application/json
 output application/json
 ---
 {
-	sql: "CREATE INDEX IF NOT EXISTS idx_hvac_materials_v3_catalog_embedding ON hvac_materials_v3 USING ivfflat (item_embedding vector_cosine_ops) WITH (lists = 100);"
+	sql: "CREATE INDEX IF NOT EXISTS idx_hvac_materials_v3_catalog_embedding ON $(p('tables.hvacMaterials')) USING ivfflat (item_embedding vector_cosine_ops) WITH (lists = 100);"
 }]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 			<flow-ref doc:name="common-request-sub-flow"
-				doc:id="1f0f7769-7703-43ed-8d14-2eb609f8ab34"
+				doc:id="5b28bb04-0887-4fbd-b21e-30af3d79d35e"
 				name="common-request-sub-flow" />
 
 			<ee:transform
 				doc:name="vars: httpOperation, requestPayload (Create DDL Index service_calls)"
-				doc:id="779583ad-5a4a-464b-91be-9ee0801f2d2c">
+				doc:id="cd683ed9-4bcf-4e03-9ca0-7b7797d4932b">
 				<ee:message />
 				<ee:variables>
 					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -1129,12 +1136,12 @@ output application/json
 output application/json
 ---
 {
-    sql: "CREATE INDEX IF NOT EXISTS idx_service_calls_v3_search_embedding ON service_calls_v3 USING ivfflat (search_embedding vector_cosine_ops) WITH (lists = 100);"
+    sql: "CREATE INDEX IF NOT EXISTS idx_service_calls_v3_search_embedding ON $(p('tables.serviceCalls')) USING ivfflat (search_embedding vector_cosine_ops) WITH (lists = 100);"
 }]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 			<flow-ref doc:name="common-request-sub-flow"
-				doc:id="a82535c6-cc51-40bc-aca1-e1fc7205f9c2"
+				doc:id="c0fad0bb-70ee-42ae-92bf-5c498f637b7d"
 				name="common-request-sub-flow" />
 			<logger level="INFO" message="Vector indexes created."
 				doc:name="IVFFlat index creation complete" />
