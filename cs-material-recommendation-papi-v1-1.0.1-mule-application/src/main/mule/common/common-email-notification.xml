@@ -87,7 +87,6 @@ var emailRecipients = (Mule::p('outlook.mail.recipients')) splitBy "," map{
         'address': $
     }
 }
-//mulesoft-alerts@coolsys.com
 ---
 {
     "message": {

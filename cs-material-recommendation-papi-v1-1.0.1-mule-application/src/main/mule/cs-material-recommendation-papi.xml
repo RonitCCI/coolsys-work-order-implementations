@@ -35,6 +35,6 @@ payload ]]></ee:set-variable>
     <flow name="post:\work-orders\material-recommendations:application\json:cs-material-recommendation-papi-config">
         <logger level="INFO" doc:name="START" doc:id="30623bd0-daec-482d-93a2-3c7af468da72" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]'/>
 		<flow-ref doc:name="cs-material-recommendation-subflow" doc:id="0b303283-bc42-4139-a172-5d7a3ab5207c" name="cs-material-recommendation-subflow"/>
-		<logger level="INFO" doc:name="END" doc:id="4659cb1d-6783-474c-be85-254327f33ebb" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "Start of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]'/>
+		<logger level="INFO" doc:name="END" doc:id="4659cb1d-6783-474c-be85-254327f33ebb" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "correlationId": vars.correlationId,&#10;    "appName": app.name,&#10;    "flow": flow.name,&#10;    "message": "End of flow " ++ flow.name,&#10;    "timestamp": now(),&#10;}]'/>
     </flow>
 </mule>
