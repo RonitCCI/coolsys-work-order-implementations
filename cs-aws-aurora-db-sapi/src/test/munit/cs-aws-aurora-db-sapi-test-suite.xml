@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="cs-aws-aurora-db-sapi-test-suite.xml" />
+	<munit:test name="cs-aws-aurora-db-sapi-500-error-test-suite" doc:id="9ded10e3-3f07-496d-bc21-188eb5b2dfe5" description="Test" expectedErrorType="MULE:UNKNOWN">
+		<munit:execution >
+			<munit:set-event doc:name="Set Payload" doc:id="0b567f39-f57f-481c-ae26-815a59c2db8e" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://errorTest/set-event-payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to cs-aws-aurora-db-sapi-main" doc:id="84a6a67d-8f49-4e24-bc13-09b03166d707" name="cs-aws-aurora-db-sapi-main"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="End Logger" doc:id="e8cacc48-65dc-456c-9737-5c122a83f69c" processor="logger" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="be4deedd-ab4c-4e5d-a148-cd76f19b9c29" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="cs-aws-aurora-db-sapi-test-suite.xml" />
+	<munit:test name="cs-aws-aurora-db-sapi-insert-feedback-test-suite" doc:id="971d020d-8926-4e72-bbbc-2e7ae4d0dca2" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="DB Insert Feedback" doc:id="196daaa1-c734-4934-b6ec-4393296fc0de" processor="db:bulk-insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1e62b578-1f96-41a6-9507-6231d8e55e5a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://insertFeedback/set-payload-db-response.dwl')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set var: initialPayload" doc:id="9dcfb686-c9fb-4684-a896-0416e2ebd4bd" >
+				<munit:variables >
+					<munit:variable key="initialPayload" value="#[output application/java --- readUrl('classpath://insertFeedback/set-event-var-initialPayload.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to post:\feedback:application\json:cs-aws-aurora-db-sapi-config" doc:id="1278a0d6-963e-4308-8f53-fff32ba13abf" name="post:\feedback:application\json:cs-aws-aurora-db-sapi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="End Logger" doc:id="93913011-7b9b-464d-b86f-2eb763f61292" processor="logger" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="022b2c72-6dd5-48be-b62b-1cdec841be7e" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
