@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="common-bedrock-operations-test-suite.xml" />
+	<munit:test name="common-bedrock-operations-test-suite-common-bedrock-operations-sub-flowTest" doc:id="217172a0-8a2e-45d0-877a-403505d9e12f" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Bedrock Request" doc:id="3167d457-f75d-4c8c-99c1-6edf95c1f024" processor="ms-bedrock:embedding-generate-from-text">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="4cce5e1d-a4a6-42d6-b56d-0625764567e0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to common-bedrock-operations-sub-flow" doc:id="a578d327-af96-4429-81c2-2214c8c7e570" name="common-bedrock-operations-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="ce442b3d-30f0-44f2-94b7-15fae8b4e6ac" processor="logger">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="7f23dfc9-254e-42d5-8ee8-3034758bed13" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="common-bedrock-operations-test-suite-common-bedrock-chat-operations-sub-flowTest" doc:id="3d2fbe76-3aa7-4384-8dfe-72c49ea1bff5" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Bedrock Request" doc:id="d8730065-5837-4243-8bb4-ca9ee116c987" processor="ms-bedrock:chat-answer-prompt">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="795df4eb-b847-4301-a8af-ee683d0aa88f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to common-bedrock-chat-operations-sub-flow" doc:id="dca5cd78-5e0d-48a4-8037-4fff740f2a00" name="common-bedrock-chat-operations-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="c5c702d3-a7f4-4ba2-85c1-87c80cbcf6b1" processor="logger">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5678ea1a-fc5e-4f9d-b362-09ff843b8982" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="common-bedrock-operations-suite-common-bedrock-operations-sub-flow" doc:id="2d33f16f-efa0-42e5-b133-85fca2a6190f" description="Test" expectedErrorType="MS-BEDROCK:ACCESS_DENIED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Bedrock Request" doc:id="8bdf9aa4-a348-48c9-a9ec-50fe64731f7e" processor="ms-bedrock:embedding-generate-from-text" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="4cce5e1d-a4a6-42d6-b56d-0625764567e0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="MS-BEDROCK:ACCESS_DENIED" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock Email Flow Reference" doc:id="147672fd-733f-4e39-b4dc-89a68fcd3e46" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="37a8fef0-5661-49fd-881a-58d03b63cd00" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to common-bedrock-operations-sub-flow" doc:id="ebc4cc35-06f7-4898-bc58-14e8f71a6d0f" name="common-bedrock-operations-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="aeadcfe3-85a0-4df8-99a8-d26c34bd1497" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="37a8fef0-5661-49fd-881a-58d03b63cd00" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="common-bedrock-operations-suite-common-bedrock-chat-operations-sub-flow" doc:id="a0b9ee58-8c58-4d69-8f8d-c5e1d24021bc" description="Test" expectedErrorType="MS-BEDROCK:ACCESS_DENIED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Bedrock Request" doc:id="15269bd8-fa6e-4977-8182-7f1791ec5bf1" processor="ms-bedrock:chat-answer-prompt" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="795df4eb-b847-4301-a8af-ee683d0aa88f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="MS-BEDROCK:ACCESS_DENIED" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock Email Flow Reference" doc:id="c2653414-4ed9-4b99-a0d2-c4325c0faa03" processor="flow-ref" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f9594fb4-b541-42a8-8381-a680d3bbedda" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to common-bedrock-chat-operations-sub-flow" doc:id="15d849ee-5cf3-4c0d-b944-3b8421971607" name="common-bedrock-chat-operations-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="3a49b333-1742-4a76-931c-d9eec9ca4493" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f9594fb4-b541-42a8-8381-a680d3bbedda" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

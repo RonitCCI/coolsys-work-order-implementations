@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="cs-material-recommendation-papi-test-suite.xml" />
+	<munit:test name="cs-material-recommendation-papi-test-suite-post:\work-orders\material-recommendations:application\json:cs-material-recommendation-papi-configTest" doc:id="f983b727-eb08-4fef-8242-40d23c8eb914" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="e54b4f50-79fe-4a34-a0bc-2ddf2e992cc4" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="0b303283-bc42-4139-a172-5d7a3ab5207c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post:\work-orders\material-recommendations:application\json:cs-material-recommendation-papi-config" doc:id="d7ed7edd-7849-46b3-8945-c2ba39d28082" name="post:\work-orders\material-recommendations:application\json:cs-material-recommendation-papi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="bdc7a240-259e-43e4-b72e-370a08d22f8c" processor="logger">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="4659cb1d-6783-474c-be85-254327f33ebb" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

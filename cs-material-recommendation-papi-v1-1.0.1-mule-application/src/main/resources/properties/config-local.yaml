@@ -1,10 +1,5 @@
 # Local Configuration
 
-# API Configuration
-api:
-  id: "0000"
-  basePath: "/*"
-  
 # Aurora DB Configuration    
 sys:
   db:

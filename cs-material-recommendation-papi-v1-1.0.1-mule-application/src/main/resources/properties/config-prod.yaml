@@ -1,10 +1,5 @@
 # Prod Configuration
 
-# API Configuration
-api:
-  id: ""
-  basePath: "/*"
-  
 # Aurora DB Configuration  
 sys:
   db:
@@ -21,4 +16,4 @@ outlook:
   scopes: "https://graph.microsoft.com/.default"
   mail:
     senderId: "mulsesoft-alerts@coolsys.com"
-    recipients: "mulesoft-alerts@coolsys.com"
+    recipients: "developmenterrors@coolsys.com"

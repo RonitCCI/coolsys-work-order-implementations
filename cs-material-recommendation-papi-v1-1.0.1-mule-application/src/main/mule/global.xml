@@ -30,8 +30,6 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 		doc:name="Configuration properties"
 		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
 		file="properties/config-${mule.env}.yaml" />
-	<!-- <secure-properties:config name="secure_properties_configuration" doc:name="Secure Properties Config" doc:id="94934815-b2cd-47da-986a-dd87cc29345a" file="properties/secure/config-${mule.env}-secure.yaml" key="${mule.key}" >
-	</secure-properties:config> -->
 	<configuration-properties
 		doc:name="Configuration properties"
 		doc:id="dd661869-d2fe-461c-85f2-4dd2c7f7243f"

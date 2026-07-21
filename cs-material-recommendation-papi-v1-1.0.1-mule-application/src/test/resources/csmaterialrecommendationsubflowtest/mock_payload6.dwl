@@ -1,0 +1,19 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```json\n{\n  \"Service_Call_ID\": \"250101-0125\",\n  \"search_metadata\": {\n    \"query_vector_source\": \"LK CHECK & EQUIPMENT SURVEY\",\n    \"total_suggestions_found\": 15,\n    \"search_latency_ms\": 27590,\n    \"similar_calls_used\": 50,\n    \"candidates_from_similar_calls\": 82,\n    \"universal_items_injected\": 10\n  },\n  \"suggested_materials\": [\n    {\n      \"similarity_score\": 1,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"CLEAN MATERIALS,RAGS,MISC\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Used in 32/50 similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.2325,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"Contactor — voltage and amperage to be confirmed from equipment nameplate\",\n        \"CATEGORY\": \"CONTACTOR\",\n        \"REASONS\": \"Contactor replacement is the primary need; matched 3 variants across similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.2105,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"Coil cleaner\",\n        \"CATEGORY\": \"CHEMICAL\",\n        \"REASONS\": \"Chemical consumable used in maintenance\"\n      }\n    },\n    {\n      \"similarity_score\": 0.2071,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"ELECT CONNECT,TAPE,TIES\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Standard consumable — used on 26640 service calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1923,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"SM DISPOSAL, MTL REMOVED\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Used in 1/50 similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1876,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"Filter-Drier — core type and size to be confirmed from equipment specifications\",\n        \"CATEGORY\": \"FILTER-DRIER\",\n        \"REASONS\": \"Filter-Drier replacement is the primary need; matched 2 variants across similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1849,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"MESH FILTER\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Used in 1/50 similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1816,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"ENVIRONMENTAL FEE\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Standard consumable — used on 14947 service calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1778,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"BOLTS,SCREWS,BRACING,LUBE\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Standard consumable — used on 13229 service calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1661,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"REFRIG RECOVERY(EPA-CAA)\",\n        \"CATEGORY\": null,\n        \"REASONS\": \"Used in 1/50 similar calls\"\n      }\n    },\n    {\n      \"similarity_score\": 0.1645,\n      \"material_details\": {\n        \"ITEMNMBR\": null,\n        \"ITEMDESC\": \"Refrigerant — type and quantity to be confirmed from equipment nameplate\",\n        \"CATEGORY\": \"GAS\",\n        \"REASONS\": \"Refrigerant replacement is the primary need; matched 1 variant across similar calls\"\n      }\n    }\n  ]\n}\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 2322,
+    "outputTokens": 1125,
+    "totalTokens": 3447
+  },
+  "amazon-bedrock-guardrailAction": "NONE"
+}
