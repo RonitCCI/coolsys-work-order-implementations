@@ -100,13 +100,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
-			<artifactId>cs-material-recommendation-papi</artifactId>
-			<version>1.0.2</version>
-			<classifier>raml</classifier>
-			<type>zip</type>
-		</dependency>
-		<dependency>
 			<groupId>com.mulesoft.connectors</groupId>
 			<artifactId>mule4-amazon-bedrock-connector</artifactId>
 			<version>1.0.2</version>
@@ -129,6 +122,13 @@
 			<artifactId>mule4-outlook365-connector</artifactId>
 			<version>1.3.1</version>
 			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
+			<artifactId>cs-material-recommendation-papi</artifactId>
+			<version>1.0.3</version>
+			<classifier>raml</classifier>
+			<type>zip</type>
 		</dependency>
 	</dependencies>
 
