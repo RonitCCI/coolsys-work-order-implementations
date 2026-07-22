@@ -29,18 +29,18 @@
 
 	<flow name="embedding-pipeline-scheduler-flow"
 		doc:name="HVAC Pipeline — Daily Scheduler"
-		doc:id="a3aa7aa2-2dae-4207-bf14-2abebac72004">
+		doc:id="48f2babc-2fca-439d-96f6-c5aa0328b4b2">
 		<scheduler doc:name="Every 3 months">
 			<scheduling-strategy>
 				<cron expression="${scheduler.cron}" />
 			</scheduling-strategy>
 		</scheduler>
 		<logger level="INFO" doc:name="START"
-			doc:id="cf73b252-01dd-457d-a2ff-0c02f782ccb9"
+			doc:id="633a426c-7deb-4fea-9969-abc122a916ee"
 			message="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	'correlationId': vars.correlationId default correlationId,&#10;	'appName': app.name,&#10;	'flow': flow.name,&#10;	'message': 'Start of flow ' ++ flow.name,&#10;	'timestamp': now()&#10;}]" />
 
 		<flow-ref doc:name="get-s3-files-sub-flow"
-			doc:id="b10655b9-f878-4366-bdaf-f48354dc5b0b"
+			doc:id="99cc4f02-4226-4874-a686-3611b1f07f06"
 			name="get-s3-files-sub-flow" />
 		<logger level="INFO"
 			message="#['Loaded ' ++ (sizeOf(vars.headerParsed.rows) as String) ++ ' service call records']"
@@ -78,7 +78,7 @@
 
 		<ee:transform
 			doc:name="var: allRecords (join headerParsed + notesData + materialsJoinMap)"
-			doc:id="32be9946-9715-4bf2-8054-d27539b54b0f">
+			doc:id="21bfbb05-7569-42b2-be28-22f0ba58d435">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="allRecords"><![CDATA[%dw 2.0
@@ -122,7 +122,7 @@ write((vars.allRecords map (rec) -> (rec.Service_Call_ID default '')) filter (id
 
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (Query Embedded Calls)"
-			doc:id="7217305f-c2f1-476e-95f7-57e9f79c42a0">
+			doc:id="f52dbab7-8689-49f0-8eaf-afe8ea6d89ce">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -148,7 +148,7 @@ output application/json
 		</ee:transform>
 
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="fcf5df80-d48b-4b1e-a91f-f576c0116842"
+			doc:id="ff610561-cd9a-4f2f-9d8f-ebb5698d8ea3"
 			name="common-request-sub-flow" />
 
 		<ee:transform doc:name="Prepare Payload">
@@ -345,9 +345,10 @@ output application/java
                                                 ]]></ee:set-variable>
 										</ee:variables>
 									</ee:transform>
-									<flow-ref name="common-bedrock-request-sub-flow"
-										target="serviceEmbeddingResponse"
-										doc:name="common-bedrock-request-sub-flow" />
+									<flow-ref doc:name="common-bedrock-request-sub-flow"
+										doc:id="b44e3590-2c01-4997-90bb-a6969e6a4817"
+										name="common-bedrock-request-sub-flow"
+										target="serviceEmbeddingResponse" />
 								</until-successful>
 								<error-handler>
 									<on-error-continue type="ANY">
@@ -458,9 +459,10 @@ output application/json
                                 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
-						<flow-ref doc:name="common-request-sub-flow"
-							name="common-request-sub-flow" />
 
+						<flow-ref doc:name="common-request-sub-flow"
+							doc:id="47dbad08-408c-4e46-9ce7-256e999f8628"
+							name="common-request-sub-flow" />
 						<choice doc:name="Embedding Rows To Persist (Block)?">
 							<when
 								expression="#[not isEmpty(vars.serviceCallBlock.embeddingUpdateRows)]">
@@ -489,6 +491,7 @@ output application/json
 									</ee:variables>
 								</ee:transform>
 								<flow-ref doc:name="common-request-sub-flow"
+									doc:id="d9c7a633-41a4-46e2-a0d8-c315f167b175"
 									name="common-request-sub-flow" />
 							</when>
 						</choice>
@@ -520,6 +523,7 @@ output application/json
 							</ee:variables>
 						</ee:transform>
 						<flow-ref doc:name="common-request-sub-flow"
+							doc:id="9d39665f-6865-405b-ab3c-b9bc9bbd2d21"
 							name="common-request-sub-flow" />
 
 						<choice doc:name="Appointment Rows To Insert (Block)?">
@@ -550,6 +554,7 @@ output application/json
 									</ee:variables>
 								</ee:transform>
 								<flow-ref doc:name="common-request-sub-flow"
+									doc:id="069c91ed-b901-4c8a-b45d-41c737e104bc"
 									name="common-request-sub-flow" />
 							</when>
 						</choice>
@@ -580,9 +585,10 @@ output application/json
                                 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
-						<flow-ref doc:name="common-request-sub-flow"
-							name="common-request-sub-flow" />
 
+						<flow-ref doc:name="common-request-sub-flow"
+							doc:id="4372db88-9995-4250-928b-6b3ae4983944"
+							name="common-request-sub-flow" />
 						<choice doc:name="Service Item Rows To Insert (Block)?">
 							<when
 								expression="#[not isEmpty(vars.serviceCallBlock.serviceItemRows)]">
@@ -610,9 +616,10 @@ output application/json
                                         ]]></ee:set-variable>
 									</ee:variables>
 								</ee:transform>
-								<flow-ref doc:name="common-request-sub-flow"
-									name="common-request-sub-flow" />
 
+								<flow-ref doc:name="common-request-sub-flow"
+									doc:id="b7c1a386-51d5-489f-9cbf-c1394e8f18dd"
+									name="common-request-sub-flow" />
 								<ee:transform
 									doc:name="vars: httpOperation, requestPayload (bulk update usage count)">
 									<ee:variables>
@@ -638,6 +645,7 @@ output application/json
 									</ee:variables>
 								</ee:transform>
 								<flow-ref doc:name="common-request-sub-flow"
+									doc:id="c6268e58-3e5a-4097-9c5c-bdcfa3e36460"
 									name="common-request-sub-flow" />
 							</when>
 						</choice>
@@ -687,9 +695,9 @@ output application/json
 Mule::p('s3.bucketName')]]></ee:set-variable>
 								</ee:variables>
 							</ee:transform>
-
-							<flow-ref name="move-object-sub-flow"
-								doc:name="move-object-sub-flow" />
+							<flow-ref doc:name="move-object-sub-flow"
+								doc:id="0d3569e4-38db-4561-9db4-8963ba1e8979"
+								name="move-object-sub-flow" />
 						</foreach>
 
 						<os:remove key="#[correlationId]"
@@ -706,18 +714,16 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 				</choice>
 
 				<set-variable variableName="customProcessName"
-					value="Service Calls Vector Seeding"
-					doc:name="customProcessName" />
+					value="Service Calls Vector Seeding" doc:name="customProcessName" />
 				<flow-ref doc:name="send-email-notification-sub-flow"
 					name="send-email-notification-sub-flow" />
 
 				<flow-ref name="create-index-loop-sub-flow"
 					doc:name="create-index-loop-sub-flow"
-					doc:id="6d85ea08-5783-4466-ae68-b1a89ac9f099" />
-				<logger level="INFO" doc:name="END"
-					message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
+					doc:id="62f23656-4113-4cd5-9e4f-0379a2b740af" />
 			</batch:on-complete>
 		</batch:job>
+		<logger level="INFO" doc:name="END" doc:id="636a520b-5a69-4ada-8aaf-8d75f5665c53" message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
 	</flow>
 
 	<sub-flow name="seed-hvac-materials-flow"
@@ -726,7 +732,7 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 			doc:name="Seeding started" />
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (create unique index DDL)"
-			doc:id="8f69aaff-361f-4da9-979d-bceea63e8a69">
+			doc:id="f4910385-391d-4ffb-83e4-4019aea497e9">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -748,7 +754,7 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="8b24828c-a5f0-49b2-8cc7-ffdeab9e0d03"
+			doc:id="582e0a33-64a8-4cfd-8c06-874b6b644c25"
 			name="common-request-sub-flow" />
 
 		<logger level="INFO"
@@ -768,7 +774,7 @@ write((vars.uniqueMaterialCatalogEntries default []) map (m) -> m.materialKey, '
 
 		<ee:transform
 			doc:name="vars: httpOperation, requestPayload (Query Existing Materials)"
-			doc:id="cf255f57-41e2-4bbd-8e38-cd3b7d97f33f">
+			doc:id="214c9797-abbc-4a74-a504-aac941d7bfb7">
 			<ee:message />
 			<ee:variables>
 				<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -793,7 +799,7 @@ output application/json
 			</ee:variables>
 		</ee:transform>
 		<flow-ref doc:name="common-request-sub-flow"
-			doc:id="4d6ec88c-5871-4d57-af31-b22aa94ba4ae"
+			doc:id="250070d7-40a4-45b3-8a8a-f1e1139c1642"
 			name="common-request-sub-flow" />
 
 		<ee:transform doc:name="Prepare Existing HVAC Materials">
@@ -835,7 +841,7 @@ do {
 				expression="#[not isEmpty(vars.materialSeedingPlan.newMaterialCatalogEntries)]">
 				<ee:transform
 					doc:name="vars: httpOperation, requestPayload (Insert into hvac_materials)"
-					doc:id="bfea65eb-6032-497c-a977-f47b3223d80f">
+					doc:id="c3f9aded-eecf-4141-8bf7-1c55c547e588">
 					<ee:message />
 					<ee:variables>
 						<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -858,7 +864,7 @@ output application/json
 					</ee:variables>
 				</ee:transform>
 				<flow-ref doc:name="common-request-sub-flow"
-					doc:id="025340c2-efbd-4b5c-8426-768f2e54cf59"
+					doc:id="5ca07bf6-3ff1-45a9-add1-663cda4b9d76"
 					name="common-request-sub-flow" />
 				<logger level="INFO"
 					message="#['UPSERT catalog (bulk): ' ++ (sizeOf(vars.materialSeedingPlan.newMaterialCatalogEntries) as String) ++ ' new material(s)']"
@@ -951,7 +957,9 @@ output application/java
                                                     ]]></ee:set-variable>
 												</ee:variables>
 											</ee:transform>
-											<flow-ref name="common-bedrock-request-sub-flow"
+											<flow-ref doc:name="common-bedrock-request-sub-flow"
+												doc:id="d5237604-67b4-445d-98b9-2e3f43e0bca0"
+												name="common-bedrock-request-sub-flow"
 												target="materialEmbeddingResponse" />
 										</until-successful>
 										<error-handler>
@@ -1049,9 +1057,11 @@ output application/json
 											</ee:variables>
 										</ee:transform>
 										<flow-ref doc:name="common-request-sub-flow"
+											doc:id="0a9d082c-6a4a-4a29-a6c1-e8edada94641"
 											name="common-request-sub-flow" />
 										<logger level="INFO"
-											message="#['Embedded ' ++ (sizeOf(vars.materialEmbeddingUpdateRows) as String) ++ ' HVAC material(s) (bulk update)']" />
+											message="#['Embedded ' ++ (sizeOf(vars.materialEmbeddingUpdateRows) as String) ++ ' HVAC material(s) (bulk update)']"
+											doc:name="Size of Embedded Records" />
 									</when>
 								</choice>
 								<remove-variable
@@ -1084,7 +1094,7 @@ output application/json
 	</sub-flow>
 
 	<sub-flow name="create-index-loop-sub-flow"
-		doc:id="a9b1d68c-7ebc-485d-960b-1f6d4a4d7306">
+		doc:id="865a6f3a-9469-48ab-a802-5f9522788d79">
 		<logger level="INFO"
 			message="Creating IVFFlat vector indexes..."
 			doc:name="IVFFlat index creation started" />
@@ -1092,7 +1102,7 @@ output application/json
 			doc:name="Try — IVFFlat index creation (non-fatal on timeout)">
 			<ee:transform
 				doc:name="vars: httpOperation, requestPayload (Create DDL Index for hvac_materials)"
-				doc:id="3c3aa6da-8c74-4528-86d1-270b8c140c9f">
+				doc:id="d12bdf62-e813-41b3-a97d-92f7d35d105b">
 				<ee:message />
 				<ee:variables>
 					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -1114,12 +1124,12 @@ output application/json
 				</ee:variables>
 			</ee:transform>
 			<flow-ref doc:name="common-request-sub-flow"
-				doc:id="5b28bb04-0887-4fbd-b21e-30af3d79d35e"
+				doc:id="fc229a1c-09d7-4a59-85e2-bfa5bb27ac25"
 				name="common-request-sub-flow" />
 
 			<ee:transform
 				doc:name="vars: httpOperation, requestPayload (Create DDL Index service_calls)"
-				doc:id="cd683ed9-4bcf-4e03-9ca0-7b7797d4932b">
+				doc:id="575f6985-df2d-4efc-9c33-27271cf8f02c">
 				<ee:message />
 				<ee:variables>
 					<ee:set-variable variableName="httpOperation"><![CDATA[%dw 2.0
@@ -1141,7 +1151,7 @@ output application/json
 				</ee:variables>
 			</ee:transform>
 			<flow-ref doc:name="common-request-sub-flow"
-				doc:id="c0fad0bb-70ee-42ae-92bf-5c498f637b7d"
+				doc:id="eec35058-811c-4f50-8bac-1a1c84d53344"
 				name="common-request-sub-flow" />
 			<logger level="INFO" message="Vector indexes created."
 				doc:name="IVFFlat index creation complete" />

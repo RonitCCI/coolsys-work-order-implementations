@@ -6,3 +6,23 @@
 # Outlook summary recipients
 outlook:
   recipients: ["developmenterrors@coolsys.com"]
+  
+
+# DB Configuration
+awsAurora:
+  host: "cs-aws-aurora-db-sapi-prod-x6i65o.internal-83uhjy.usa-e1.cloudhub.io"
+
+# Mail Summary  
+s3:
+  bucketName: "coolsys-mssql-aurora-private"
+   
+  
+# AWS Tables
+tables:
+  serviceCalls: "service_calls_test"
+  hvacServiceItems: "hvac_service_items_test"
+  hvacMaterials: "hvac_materials"
+  hvacAppointments: "hvac_appointments_test"   
+  
+  
+ 

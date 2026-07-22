@@ -1,0 +1,229 @@
+Service_Call_ID||Service_Description||ProblemDesc||CUSTNMBR||ADRSCODE||Divisions
+888888-0002      ||     || || || ||
+
+888888-0001      ||DEVICE ABSENT FROM NETWORK     ||
+DEVICE ABSENT FROM NETWORK
+T3409 - Retail Corporation - Facilities Management Work Order # 9142275439
+M
+maximostores.admin@retailcorp.com
+To service@hvacvendor.com
+Today 5:21 PM
+[CAUTION: This email originated from outside of the organization. Do not click links or open attachments unless you recognize the sender and know the content is safe.]
+ 
+ 
+Work Order# 9142275439
+ 
+Direct Work Order Link: 
+https://servicetech.retailcorp.com/search#?company_id=0000038475&wonum=9142275439
+ 
+Company Link - Search for Work Order by WO number: 
+https://servicetech.retailcorp.com/search#?company_id=0000038475
+ 
+ 
+ 
+ 
+Store Information:
+Group#: 189
+Dist#: 182
+T3409
+123 MAIN STREET
+Cityville, ST
+83001
+Store Phone#:
+Store Contacts: 1. Property Management Lead (PML)
+2. Store Leader on Duty (LOD)
+Work Order#: 9142275439 Details:
+Work Type: Emergency Maintenance
+NTE: $ 800.00
+Commodity Code: 70142011
+Earliest Start Date: 2/12/25 6:23 PM CST
+Arrive By: 2/12/25 8:23 PM CST
+Repair By: 2/17/25 6:23 PM CST
+Originating Work Order#: BP256843762
+Asset/Location Identification:
+Location: BACKROOM
+Asset name: REM_#A
+ 
+Asset description: CPC - E2
+Asset Tag (if applicable): ECO2_REM_#A
+Warranty Expiration Date:
+Make: CPC
+Model: E2
+Serial#:
+Asset Specification:
+=
+=
+=
+Problem:
+Problem Code Selected: ALARM_EM
+Description Overview:
+RTCR COND FAN6 Device absent from network RTCR COND FAN2 Device absent from network
+Safety Precautions:
+Safety Plan:
+Hazard:
+Precaution:
+___________________________________________________________________________
+**Retail process, Vendor training, and access to Maximo:
+http://www.partnersonline.com
+**Ariba website for invoicing: http://www.ariba.com
+Refrigerant Containing Asset:
+If this work order is assigned to a refrigerant containing asset Retail requires you to comply with all EPA record tracking requirements (Clean Air Act, Section 608). If this is a scheduled Leak Inspection work order or if refrigerant was added to a system with a capacity over 50lbs you must create a service event in Trakref. 
+If the asset is not available in Trakref please email Refrigerant.Tracking@retailcorp.com and provide asset details including: Make/Model/Serial/Refrigerant Type/Refrigerant Capacity. 
+Service Provider Expectations:
+1. NTE / Invoice Payment Requirements:
+a. Not To Exceed (NTE) will be enforced. Repair expenses in excess of the NTE must have prior approval before completing work.
+b. Submit proposals through Maximo
+c. Non-proposal NTE authorizations and questions: 888.888.0304
+d. A valid WO number is required for invoices to be submitted via Ariba
+e. Invoices will not be paid until Retail required documentation is submitted
+2. Retail Corporation expects that you will complete this service on or before the requested repair by date listed above.
+3. Log into Partners Online and access the Maximo application to update all of the required fields upon completion of this WO. If WO information is not updated online, invoices will not be processed for payment.
+4. Work shall be performed in compliance with all federal, state and local laws, rules and regulations. Follow all lock-out, tag-out procedures.
+5. This work order is considered part of and subject to your contract with Retail unless otherwise agreed in writing by Retail.
+Billing Information:
+Submit invoice electronically through Ariba
+Email invoice questions to   Non-MerchAP.Questions@retailcorp.com 
+ 
+Vendor Information Changes:
+To make changes to your company information listed below, please submit the   
+Company Contacts Form (Note: Only one email address can be listed as the recipient of work order notifications).
+HVAC Vendor
+123 S. Main Street, Ste. 200
+Fakecity, ST
+92821
+Attention:
+Phone: 877-772-6285
+Fax:
+Email: service@hvacvendor.com
+Notes Added By:ALEX.SMITH at 2/12/2025 4:29:51 PM
+
+CustIntegration@ Feb 12 2025  4:30PM: Third party successfully accepted this PO
+
+CustIntegration@ Feb 12 2025  4:30PM: Third party successfully accepted this PO
+
+ANA.ADAMS @ 02/12/2025 19:34:33:  
+CHUA/FMOC CALLED TO REQUEST AN 
+ETA.
+EID-P1-TARG3409-888888-0001**ETA REQUEST**
+
+ALICE.RAY @ 02/12/2025 22:34:24:  RIZWAN/FMOC CALLED REQUESTING ETA -SPOKE WITH DISPATCHER LEROY CALLED THE TECH AND THE TECH HAD CALLED THE STORE AND THEY SAID THEY CLOSED THE STORE AT 9PM AND TECH ADVISED HE IS UNABLE TO MAKE IT AT THE TIME . SERVICE IS FOR TOMORROW MORNING ETA 
+
+jsmith @ 02/13/2025 04:30:55: Technician is emailed with the call information.
+
+TANYA.HARRIS @ 02/13/2025 05:42:46:  CHOUA-FMOC-CALLED FOR ETA-VERIFIED TECH ENROUTE 1HR TO 1.5-ADDED NOTE OF CONDERSER 5 COMM LOSS
+
+TANYA.HARRIS @ 02/13/2025 08:51:24:  DAWN-FMOC-STATED TECH JUST LEFT-STATED UNITS ALARMING-I VERIFIED WITH DISPATCH-TECH IS STILL ON SITE-LET DAWN KNOW
+
+P.LEONARD @ 02/13/2025 11:53:33:  SPOKE WITH JODI CALLED FOR REDISPATCH SAID STILL RECEIVING ALARMS
+
+P.LEONARD @ 02/13/2025 11:55:15:  EID-P1-TARG3409-888888-0001**CALLBACK CREATED**   
+
+jsmith @ 02/13/2025 12:04:32: Technician is emailed with the call information.
+
+ANA.ADAMS @ 02/13/2025 12:30:34:  LALITHA/FMOC CALLED TO REQUEST AN ETA
+EID-P1-TARG3409-888888-0001 **ETA REQUEST**
+
+GABBY.BROWN @ 02/13/2025 12:37:47:  TECH IS ENROUTE
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ Thank you,
+
+ 
+
+
+
+Jane Smith
+Mountain West Dispatcher
+p: 555.555.5555
+123 W Fake Ave Phoenix, AZ 85009
+
+www.hvacvendor.com
+
+ANA.ADAMS @ 02/13/2025 17:23:18:  NIKIA/FMOC CALLED TO REQUEST A CALLBACK
+3409
+6 AM SERVICE 
+9142275439
+CONDENS FAN ABSENT FROM NET WORK 
+ALAMRMING AGAIN 
+
+EID-P1-TARG3409-888888-0001 **CALLBACK**
+
+ANA.ADAMS @ 02/13/2025 17:23:28:  NIKIA/FMOC CALLED TO REQUEST A CALLBACK FOR 6AM SERVICE 
+FAN ABSENT FROM NET WORK  AGAIN 
+EID-P1-TARG3409-888888-0001 **CALLBACK**
+
+GSANDERS @ 02/13/2025 17:27:03:  PER LEAD KODY SEND HIM WO AND HE WILL BE ONSITE TOMORROW 2/15 IN THE MORNING
+
+GSANDERS @ 02/13/2025 17:27:03:  PER LEAD KODY SEND HIM WO AND HE WILL BE ONSITE TOMORROW 2/15 IN THE MORNING
+
+jsmith @ 02/14/2025 05:42:29: Technician is emailed with the call information.
+
+FELIX.CRUZ @ 02/17/2025 09:13:37:  AAMER/FMOC REQUESTING ETA ADVISED PART STATUS. PLEASE CONTACT THE STORE PHONE: 307 200 3139 WITH ETA ONCE AVAILABLE 
+
+
+P.LEONARD @ 02/17/2025 11:02:52:  SPOKE WITH SCOTT SAYS DEVICE ABSENT FROM NETWORK ALARMS GOING OFF AGAIN  FOR TEMP FIX
+
+JSMITH @ 02/17/2025 11:57:03:  ROLL FOR 02/18 PER LEAD RYAN R
+
+EVAN.HICKS @ 02/17/2025 18:50:32:  ROCHELLE/FMOC CALLED IN ETA- INFORMED SVC ROLLED TO AM
+
+jsmith @ 02/18/2025 06:48:20: Technician is emailed with the call information.
+
+P.LEONARD @ 02/18/2025 09:26:05:  SPOKE WITH KAPIL/FMOC CALLED FOR ETA, I CALLED DISPATCH TO CONFIRM SHE ADV TECH IS ONSITE
+
+ANA.ADAMS @ 02/18/2025 12:58:34:   NIKKI/ FMOC CALLED TO CHECK STATUS- TECH ONSITE.
+888888-0001 
+
+
+P.LEONARD @ 02/24/2025 09:38:29:  SPOKE WITH JODI/FMOC CALLED FOR ETA , SENT EMAIL TO PURCHASING 
+
+AMANDA.FORD @ 02/27/2025 07:49:24:  ASHWINI, FMOC CALLED IN FOR AN ETA UPDATE
+
+EID-P1-TARGET #3409-WO#888888-0001***ETA REQUEST***FWD TO DISPATCH AND TARGET SUPPORT 
+
+JSMITH @ 02/27/2025 08:22:38:  PROVIDED ETA TO CALL CENTER ETA EMAIL REQUEST & TARGET SUPPORT 
+ETA- NEXT WEEK 
+
+P.LEONARD @ 02/27/2025 08:23:51:  ETA - WE WILL HAVE TECH ONSITE NEXT WEEK
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ Thank you,
+
+ 
+
+
+Jane Smith
+
+jsmith @ 03/04/2025 05:16:56: Technician is emailed with the call information.
+
+JASON.HAYES @ 03/07/2025 12:02:52:  BRIDDEP/FMOC CALLED FOR UPDATE/ SENT ETA TO PURCHASING
+
+FELIX.CRUZ @ 03/10/2025 09:22:49:  SOPHIA/FMOC REQUESTING ETA ADVISED BID STATUS 
+
+FELIX.CRUZ @ 03/11/2025 09:29:20:  RACHEL/PML REQUESTING ETA ADVISED BID STATUS
+
+GABBY.BROWN @ 03/12/2025 09:17:33:  JATHIN/FMOC CALLING FOR ETA/SENT EMAIL TO PQ TO UPADTE MAXIMO
+
+GABBY.BROWN @ 03/17/2025 09:28:34:  JODI/FMOC CALLING FOR ETA/ADV WAITING FOR CUST APPROVAL|| || ||

@@ -1,0 +1,113 @@
+Service_Call_Id||ApptNumber||OfficeNotes||SummaryNotes||OnsiteStartTime||OnsiteStopTime||Status||FollowupReason
+888888-0001      ||0040|| ||Changed out drive.
+Second drive isn't addressed either. 
+Contacted VendorSys and their systems are down. 
+Leaving call in followup for when VendorSys gets back to me.||2025-11-26 10:18:05:000||2025-11-26 11:56:43:56||FOLLOWUP||Labor Only
+888888-0001      ||0028|| ||Arrived on site checked my calm loop voltage from the controller to the end of the loop and I never lose my voltage. Checked resistor at the end of the loop and it's supposed to be 2.1 mega ohms and I'm reading 150 ohms. Left target to find a resistor in town checked a few different places and no one has it. We'll have to drive to Pineville to find one. Checked out with Bob before I left. Not on site one checked out.||2025-08-14 11:22:07:000||2025-08-14 13:12:43:12||FOLLOWUP||Labor Only
+888888-0001      ||0029|| || ||1900-01-01 00:00:00:000||||Rejected|| 
+888888-0001      ||0026|| ||Picked up VFDs drove to store checked in. Other tech called FMOC and had them silence alarms till 12:00 mountain time. Brought tools and parts up pumped down rack shut off condenser removed each VFD one by one and wired them up. Once done checked wiring all looked good. Turned condenser back on verified proper rotation of fans, and turned the rack back on. Checked E2 no alarms verified all cases came back down to temp, and all VFDs were communicating and online. Cleaned up and checked out.||2025-08-11 09:39:59:000||2025-08-11 13:05:27:05||Complete|| 
+888888-0001      ||0027|| ||Assisted tech replacing all condenser vfd's.
+Checked out with Bob.
+||2025-08-11 09:13:38:000||2025-08-11 12:53:34:53||Complete|| 
+888888-0001      ||0036|| ||Bypassed com loop at the subcooler controller to see if it was the controller 
+Drives are still off line 
+Drives need there own dc power supply||2025-09-02 15:28:33:000||2025-09-02 16:24:45:24||FOLLOWUP||Labor Only
+888888-0001      ||0032|| ||Checked all connections and redid the connections on the Subcooler controller(first in line on the comm loop). Comm got restored. Waited and they didn't come back out of comm||2025-08-28 10:21:31:000||2025-08-28 15:18:13:18||Complete|| 
+888888-0001      ||0033|| ||Performed what tech support said to do
+Bring one drive on at a time 
+Didn't work 
+Also ran home run 
+Didn't work 
+Still in communication loss||2025-08-25 10:45:44:000||2025-08-25 13:05:25:05||FOLLOWUP||Labor Only
+888888-0001      ||0030|| ||Replaced commutation loop resister 
+Power cycled 
+Drives are still in communication loss
+Communication loop voltage is present 2.4 VDC
+Contacted ManufacturerY tech support 
+They recommended un-wiring drives and bringing in drive in at a time 
+Will rerun next week||2025-08-22 10:58:37:000||2025-08-22 13:23:29:23||FOLLOWUP||Labor Only
+888888-0001      ||0037|| ||Checked in with Bob
+Replaced daisy chain comm wiring on condensor checked ohms resistance on resistor and monitored system. 
+All functioning VFDs came online but after 30 minutes of monitoring vfd 1 lost comm.
+Called VendorSys and the guy told me it is a common problem without a common resolution he said "off the record, they all fail and there is no cause or resolution." He said I could try removing the resistor at the end of the loop and see if that works. 
+EMC said that every store that he those krack condensers has the same issue and no resolution. They get calls all the time and they all seem to be in comm loss for no reason. 
+Removed resistor and monitored. 
+All VFDs are communicating at this time. 
+||2025-09-10 12:01:00:000||2025-09-10 15:46:00:46||FOLLOWUP||Labor Only
+888888-0001      ||0039|| ||Picked up part in Springfield 
+Drove to Riverton
+Checked in with Bob
+Replaced vfd. 
+Condenser fan number four is running now. But it is still not communicating. We ordered the new VFD to be programmed with the address of 204 but I don't think that VendorSys did it. Waiting on a response from VendorSys.
+Checked out with Bob||2025-11-04 09:58:32:000||2025-11-04 12:00:00:00||FOLLOWUP||Labor Only
+888888-0001      ||0044|| || ||1900-01-01 00:00:00:000||||Rejected|| 
+888888-0001      ||0041|| ||Picked up drive in Springfield.
+Checked in with Bob
+Changed out drive and reset controller.
+Monitored condenser comms.
+All comm are online at this tome
+Checked out with Bob
+||2025-12-08 09:51:35:000||2025-12-08 11:53:00:53||Complete|| 
+888888-0001||0042|| ||Checked in with Nancy
+Checked  all wiring and electronics. 
+Nothing obvious found that is causing the comm loss. 
+Waiting on more info from manufacturer so we can troubleshoot further.||2025-12-12 11:45:00:000||2025-12-12 12:31:00:31||FOLLOWUP||Labor Only
+888888-0001||0012|| ||Arrived onsite and got access to the roof. Checked in with FMOC and alarms silence until we restored power to the rack. Begin changing out VFD's apply power back on once changed out found one VFD wooden power up. Will send in for warranty. Use mega meter on the two motors for those two PFD`s and found open Winings with mega meter. Called and checked out with FMOC||2025-04-03 11:53:49:000||2025-04-03 14:18:01:18||FOLLOWUP||Need Bid
+888888-0001      ||0013|| ||Assisted other tech with troubleshooting. He is placing his appointment in bid status.||2025-04-03 14:47:18:000||2025-04-03 15:01:05:01||Complete|| 
+888888-0001      ||0016|| ||Checked in with Chad as pml is not here.
+Went through all cases and couldn't find any out of temp.
+Checked controller and all cases were showing proper temp as well. 
+Nothing in alarm. 
+All cases were communicating properly and controller showed it was sending data. 
+No issues found at this time 
+Checked out with Chad.
+Drove home. ||2025-04-14 12:03:00:000||2025-04-14 13:17:00:17||Complete|| 
+888888-0001      ||0019|| ||Changed out the faulty VFD on condenser fan #1. Upon completion I checked fan operation. System is back to normal operation, job is complete.||2025-05-20 10:27:36:000||2025-05-20 12:12:09:12||FOLLOWUP||Labor Only
+888888-0001      ||0014|| ||Changed out condenser fan motor #3 and condenser fan motor and vfd on #1||2025-05-13 10:46:50:000||2025-05-13 14:41:35:41||FOLLOWUP||Labor Only
+888888-0001      ||0017|| ||Drove to Springfield and picked up parts. 
+Drove to Riverton.
+Checked in with Henry.
+Installed 2 condenser fan motors 1 on 3 and the other on 1. Fan 3 is working properly now with no issues. 
+Installed a vfd for fan 5. It is working and communicating. 
+Fan 1 vfd is faulting out now that it has a good motor. 
+5 out of 6 fans are currently communicating.
+We have a vfd in stock to replace the bad one with in the next day or 2.
+Checked out with Bob. 
+
+||2025-05-13 10:37:41:000||2025-05-13 14:46:00:46||FOLLOWUP||Labor Only
+888888-0001      ||0025|| ||Checked in with PML
+All six drives are absent from network today. 
+Got info from drives 
+Pushing WO to purchasing for bid and to order parts ||2025-06-25 11:52:38:000||2025-06-25 12:47:02:47||FOLLOWUP||Need Bid
+888888-0001      ||0024|| ||4 out of 6 are drives are absent from network. 
+Waiting for call back from manufacturer of the drive for technical assistance ||2025-06-06 11:03:39:000||2025-06-06 13:03:20:03||FOLLOWUP||Labor Only
+888888-0001      ||0023|| ||Replaced multi-flex board 
+Still in Alarm 
+Devise absent from network 
+Need to terminate wires 
+Will return tomorrow ||2025-06-05 10:21:39:000||2025-06-05 14:03:06:03||FOLLOWUP||Labor Only
+888888-0001      ||0022|| ||Found that the multiflex communication board in the condenser unit is faulty ||2025-05-27 09:46:48:000||2025-05-27 11:27:00:27||FOLLOWUP||Labor Only
+888888-0001      ||0001|| || ||1900-01-01 00:00:00:000||||Rejected|| 
+888888-0001      ||0002|| ||Checked in with Bob.
+Troubleshot no comm issues. 
+Found a rub through on the comm wire caused by vibration.
+Repaired wiring and power cycled condensing unit.
+All fans were communicating, monitored for 20 min. 
+Fan 1 and 3 lost comm after initial repair, checked all wiring and tightened all connections again. Reset condenser one more time. 
+All fans are communicating. 
+Monitored for an hour to make sure we didn't lose comm again. 
+Checked out with Bob.
+||2025-02-13 07:40:06:000||2025-02-13 11:02:00:02||Complete|| 
+888888-0001      ||0004|| ||Checked in with Bob. 
+Located and reset multi flex board that communicates between condenser and e2. 
+Reset e2 and condensor. 
+All fans are communicating. 
+No other issues noted at this time. 
+Contacted FMOC to confirm they showed everything online. 
+Checked out with Bob 
+Drove home. ||2025-02-13 13:31:24:000||2025-02-13 14:17:09:17||Complete|| 
+888888-0001      ||0005|| || ||1900-01-01 00:00:00:000||||Rejected|| 
+888888-0001      ||0008|| ||Traced the com voltage from the E2 to all the VFDs. No loss in voltage in the loop. Swaps com ports to see if it followed and it didn't. Has to be a bad wire. Also noticed 2 of the VFDs not spinning the motor. Will further diagnose once com is repaired||2025-02-18 10:16:53:000||2025-02-18 14:00:00:00||FOLLOWUP||Need Bid
+888888-0001      ||0009|| ||Ran new wire and got 4 of the 6 VFDs communication restored. Found fan 2 and 5 VFDs won't come back in comm. Will submit a bid to replace||2025-03-04 09:00:56:000||2025-03-04 15:45:00:45||FOLLOWUP||Need Bid
+888888-0001      ||0010|| ||Assisted tech with running wire from E2 to condenser and redoing daisy chain at VFDs. Checked out. ||2025-03-04 08:59:52:000||2025-03-04 15:45:00:45||FOLLOWUP||Labor Only
+888888-0002      ||0010|| || ||2025-03-04 08:59:52:000||2025-03-04 15:45:00:45||FOLLOWUP||Labor Only

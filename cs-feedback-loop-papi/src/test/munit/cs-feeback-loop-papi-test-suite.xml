@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="cs-feeback-loop-papi-test-suite.xml" />
+	<munit:test name="cs-feeback-loop-papi-success-test-suite" doc:id="1311992a-7ffd-4d51-a4d1-dc3c45a382f7" description="Test" timeOut="120000">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="APIkit Router" doc:id="f98687e9-c4e6-4bdf-b038-0ebde4048fa4" processor="apikit:router">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="cs-feeback-loop-papi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-call flow="get:\feedbackLoop:cs-feeback-loop-papi-config" />
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="list-objects-sub-flow" doc:id="26f2a53e-2c85-4ae4-971c-108bc0c19b14" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="9873c974-1b11-4e45-bad1-03737c6a2311" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:variables>
+						<munit-tools:variable key="listObjects" value="#[output application/java --- readUrl('classpath://s3Files/mock-payload-listObjects.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="get-object (ApptNotes)" doc:id="a260e311-e5fe-4211-8a1f-dfa8a535ebfa" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="0e2e4c14-beb6-48ef-9945-091a0a7457e6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:variables>
+						<munit-tools:variable key="rawFileContent" value="#[output application/csv --- readUrl('classpath://s3Files/mock-var-apptNotes.csv', 'application/csv')]" mediaType="application/csv" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="get-object (OrderMaterials)" doc:id="c6d60da6-8fc0-4ba5-abbf-61d8cf9ff511" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="5e0716ce-7e3a-4f00-b652-89e034cf0c30" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:variables>
+						<munit-tools:variable key="rawFileContent" value="#[output application/csv --- readUrl('classpath://s3Files/mock-var-orderMaterials.csv','application/csv')]" mediaType="application/csv" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="get-object (HeaderData)" doc:id="803cf210-52f4-421f-ac8c-bad2e7bbc308" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="e87f00fe-6ace-4596-b98c-f7e8f2b030ea" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:variables>
+						<munit-tools:variable key="rawFileContent" value="#[output application/csv --- readUrl('classpath://s3Files/mock-var-headerData.csv','application/csv')]" mediaType="application/csv" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="common-request (create unique index DDL)" doc:id="0a54c038-e261-4d46-8bd9-fa4791d7801d" processor="http:request">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="2bb71d30-a9e0-4f17-9639-d79556dee60f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://seedMaterials/mock-payload-unique-index.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="common-request (Query Existing Materials)" doc:id="62f0affe-e85a-4edd-9ff4-bb41f6f6dce8" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="250070d7-40a4-45b3-8a8a-f1e1139c1642" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://seedMaterials/mock-payload-query-existing.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="common request (insert into materials)" doc:id="aa0c5126-392e-4fee-a1a2-f9b8ff6acdde" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="5ca07bf6-3ff1-45a9-add1-663cda4b9d76" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://seedMaterials/mock-payload-insert-materials.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="common-bedrock-request" doc:id="37c07d1a-a7bf-4f9a-9fb5-413e6359f56d" processor="ms-bedrock:embedding-generate-from-text">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="957212bc-4535-43a8-a035-57904fcf24d7" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://seedMaterials/mock-payload-bedrock-request.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Bulk Update Embeddings" doc:id="b7418ab5-fb37-492f-bcc7-c7f6f8c0c820" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="0a9d082c-6a4a-4a29-a6c1-e8edada94641" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://seedMaterials/mock-payload-update-material-embeddings.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Send Email" doc:id="792de9ed-3fc1-40a2-a823-d0173114f2f7" processor="outlook365:send-mail">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="c06b12c3-f5e9-4714-a78f-1ff87db22518" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[null]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Query Embedded Calls" doc:id="fb918916-79a9-4326-9e87-2d4f488cd2b7" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="ff610561-cd9a-4f2f-9d8f-ebb5698d8ea3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-query-embedded.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="common-bedrock-request" doc:id="c9435a02-8bd7-4064-8d22-a7d2ad905e04" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="b44e3590-2c01-4997-90bb-a6969e6a4817" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:variables>
+						<munit-tools:variable key="serviceEmbeddingResponse" value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-bedrock-request.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Upsert service_calls" doc:id="ae722604-76a6-436d-a5ac-2686a6c51b98" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="47dbad08-408c-4e46-9ce7-256e999f8628" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-upsert-service-calls.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Bulk update embeddings" doc:id="0b3e7e81-efab-4729-8789-5883bf2c69a8" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="d9c7a633-41a4-46e2-a0d8-c315f167b175" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-update-embeddings.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Delete Old Appointments" doc:id="0edf995d-977b-4b86-a3d2-9a3eb23364ad" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="9d39665f-6865-405b-ab3c-b9bc9bbd2d21" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-delete-appointments.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Insert Appointments" doc:id="ad402bcd-f695-4927-a04c-ff9bdc4ebcbc" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="069c91ed-b901-4c8a-b45d-41c737e104bc" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-insert-appointments.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Delete Old Materials" doc:id="757601c8-bb74-44e3-8961-a7fc59c1cfbf" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="4372db88-9995-4250-928b-6b3ae4983944" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-delete-materials.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Insert Service Items" doc:id="13744f49-176b-4d2a-aaf1-731787f24de8" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="b7c1a386-51d5-489f-9cbf-c1394e8f18dd" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-insert-materials.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Move S3" doc:id="93ec3532-cba6-4a03-8045-19ecac152ccd" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="0d3569e4-38db-4561-9db4-8963ba1e8979" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[[]]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Update Material Count" doc:id="a404ddbd-7da8-460e-91f0-58db4dc9261c" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="c6268e58-3e5a-4097-9c5c-bdcfa3e36460" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://embeddedPipeline/mock-payload-update-material-count.dwl')]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Create DDL Index materials" doc:id="4131dd5c-7215-4981-a5d1-f822b393bc02" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="fc229a1c-09d7-4a59-85e2-bfa5bb27ac25" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[0]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Create DDL Index service_calls" doc:id="7708613e-ad7d-42d7-baa7-5705c166d3c7" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="eec35058-811c-4f50-8bac-1a1c84d53344" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[null]" mediaType="application/java" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to cs-feeback-loop-papi-main" doc:id="03ffd0a4-302f-43c1-83fe-860e998f4f9a" name="cs-feeback-loop-papi-main"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="End Logger" doc:id="2661d084-3519-471c-93d0-4405ecffb73a" processor="logger" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="636a520b-5a69-4ada-8aaf-8d75f5665c53" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:sleep time="30" doc:name="Sleep for Batch Job" doc:id="f0f8700b-4873-496a-80f4-516e4e172d6a" timeUnit="SECONDS" />
+		</munit:validation>
+	</munit:test>
+</mule>

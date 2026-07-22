@@ -10,7 +10,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
 
 	<sub-flow name="send-email-notification-sub-flow"
-		doc:id="dca1caa6-fb7b-497c-be2f-c13f540f1667">
+		doc:id="5a77af92-b118-48b5-bca3-80e8efd0bdbc">
 		<logger level="INFO" doc:name="START"
 			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "Start of flow " ++ flow.name,&#10;	"timestamp": now()&#10;}]' />
 
@@ -174,14 +174,14 @@ var emailRecipients = p('outlook.recipients') splitBy "," map{
 		</ee:transform>
 
 		<outlook365:send-mail doc:name="Send Email"
-			doc:id="121fe59c-dea9-4541-babc-e604ec54c35c"
+			doc:id="c06b12c3-f5e9-4714-a78f-1ff87db22518"
 			config-ref="Outlook365_Outlook365_Config"
 			userId="#[p('outlook.userId')]">
 			<outlook365:message><![CDATA[#[vars.mailOperation]]]></outlook365:message>
 		</outlook365:send-mail>
 
 		<logger level="INFO" doc:name="END"
-			doc:id="9f117cc1-61c8-466a-bc5c-410314a18f59"
+			doc:id="5dd3074b-7529-4436-ad7a-6f3db9777cfa"
 			message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"correlationId": vars.correlationId default correlationId,&#10;	"appName": app.name,&#10;	"flow": flow.name,&#10;	"message": "End of flow " ++ flow.name,&#10;	"timestamp": now()&#10;}]' />
 	</sub-flow>
 </mule>

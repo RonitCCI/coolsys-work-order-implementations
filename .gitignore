@@ -5,6 +5,7 @@
 .tooling-project
 .metadata/
 velocity.log
+temp/
 
 # Maven
 target/
@@ -23,3 +24,6 @@ target/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Munits
+reports/
