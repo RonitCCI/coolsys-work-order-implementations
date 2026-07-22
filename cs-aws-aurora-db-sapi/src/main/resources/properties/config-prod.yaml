@@ -1,3 +1,6 @@
 # Prod Configuration
 
 # API Configuration
+
+aws:
+  jdbc: "jdbc:postgresql://dynaplutus.cluster-c2d4scu2oia3.us-east-1.rds.amazonaws.com:5432/postgres?sslmode=verify-full&sslrootcert=${app.home}/global-bundle.pem"
