@@ -37,13 +37,6 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 		doc:name="Configuration properties"
 		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
 		file="properties/config-${mule.env}.yaml" />
-	<secure-properties:config
-		name="cs-feedback-loop-secure-properties-config"
-		doc:name="Secure Properties Config"
-		doc:id="94934815-b2cd-47da-986a-dd87cc29345a"
-		file="properties/secure/config-${mule.env}-secure.yaml"
-		key="${mule.key}">
-	</secure-properties:config>
 		<aws-secrets-manager-properties-override:config name="aws-secrets-manager-properties-override-config" doc:name="AWS Secrets Manager Properties Override Config" doc:id="19dfa118-9026-462e-b01a-754dfafc6a1a" >
 		<aws-secrets-manager-properties-override:basic-connection region="us-east-1" accessKey="${awsSecretsAccessKey}" secretKey="${awsSecretsAccessSecret}" />
 	</aws-secrets-manager-properties-override:config>
@@ -63,12 +56,6 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 			<reconnection />
 		</http:listener-connection>
 	</http:listener-config>
-	<global-property doc:name="Global Property"
-		doc:id="f0264f47-f82e-441f-88e9-6b2147863e3e" name="mule.env"
-		value="local" />
-	<global-property doc:name="Global Property"
-		doc:id="14bd9564-aedb-4814-9db7-1f8c2fcd1547" name="mule.key"
-		value="1111222233334444" />
 		<http:request-config
 		name="http-request-configuration" doc:name="HTTP Request config"
 		doc:id="e2dc4a74-f7ab-4b9b-b850-05170e83df87"

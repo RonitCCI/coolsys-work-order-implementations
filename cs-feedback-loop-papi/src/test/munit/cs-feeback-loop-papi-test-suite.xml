@@ -8,7 +8,7 @@
 		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
 		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
 	<munit:config name="cs-feeback-loop-papi-test-suite.xml" />
-	<munit:test name="cs-feeback-loop-papi-success-test-suite" doc:id="1311992a-7ffd-4d51-a4d1-dc3c45a382f7" description="Test" timeOut="120000">
+	<munit:test name="cs-feeback-loop-papi-end-to-end-success-test-suite" doc:id="1311992a-7ffd-4d51-a4d1-dc3c45a382f7" description="Test" timeOut="120000">
 		<munit:behavior >
 			<munit-tools:mock-when doc:name="APIkit Router" doc:id="f98687e9-c4e6-4bdf-b038-0ebde4048fa4" processor="apikit:router">
 				<munit-tools:with-attributes >

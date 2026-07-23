@@ -77,10 +77,5 @@ http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http
 		doc:name="Configuration properties"
 		doc:id="7ca124a6-05fc-4e20-a0ca-3722ec715151"
 		file="properties\common/common.yaml" />
-	<secure-properties:config
-		name="Secure_Properties_Config" doc:name="Secure Properties Config"
-		doc:id="598b756e-1e49-47ee-9754-a42c603a469a"
-		file="properties\secure\config-${mule.env}-secure.yaml"
-		key="${mule.key}" />
 	
 </mule>
