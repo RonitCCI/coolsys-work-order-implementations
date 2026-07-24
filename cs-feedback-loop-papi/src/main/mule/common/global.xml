@@ -96,6 +96,7 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 	</outlook365:outlook365-config>
 	<global-property doc:name="Global Property" doc:id="fcf72c0b-434c-4737-aead-ddb99da8ae82" name="outlookId" value="12345678" />
 	<global-property doc:name="Global Property" doc:id="788e41f5-2707-40a7-8cb2-e82220765623" name="outlookSecret" value="12345" />
+	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="5c60102c-3096-4e5b-b5a3-c9d5641680f7" flowRef="cs-feeback-loop-papi-main"/>
 
 	
 </mule>
