@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"
+<mule
+	xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"
 	xmlns:aws-secrets-manager-properties-override="http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override"
 	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
 	xmlns:ms-bedrock="http://www.mulesoft.org/schema/mule/ms-bedrock"
@@ -11,7 +12,10 @@
 	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
 http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
@@ -24,10 +28,24 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
 http://www.mulesoft.org/schema/mule/ms-bedrock http://www.mulesoft.org/schema/mule/ms-bedrock/current/mule-ms-bedrock.xsd
 http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override http://www.mulesoft.org/schema/mule/aws-secrets-manager-properties-override/current/mule-aws-secrets-manager-properties-override.xsd
 http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mule/outlook365/current/mule-outlook365.xsd">
+	<api-gateway:autodiscovery apiId="${api.id}"
+		ignoreBasePath="true" doc:name="API Autodiscovery"
+		doc:id="9e6e611c-f264-48e4-bb0d-9bdc8eb21c6b"
+		flowRef="cs-feeback-loop-papi-main" />
 	<apikit:config name="cs-feeback-loop-papi-config"
-		api="resource::36cd1ce8-e608-4255-875d-0b7eb18519cd:cs-feeback-loop-papi:1.0.0:raml:zip:cs-feeback-loop-papi.raml"
+		api="resource::36cd1ce8-e608-4255-875d-0b7eb18519cd:cs-feeback-loop-papi:1.0.1:raml:zip:cs-feeback-loop-papi.raml"
 		outboundHeadersMapName="outboundHeaders"
 		httpStatusVarName="httpStatus" />
+	<http:listener-config
+		name="cs-feedback-loop-http-listener-config"
+		doc:name="HTTP Listener config"
+		doc:id="1e1faa87-cf39-4fff-bf49-f2bc8522ac78">
+		<http:listener-connection host="${http.host}"
+			port="${http.port}" readTimeout="${http.readTimeout}"
+			connectionIdleTimeout="1200000">
+			<reconnection />
+		</http:listener-connection>
+	</http:listener-config>
 	<import doc:name="Import"
 		doc:id="4a28dbcd-73ee-4b49-9bb7-67e22979fc30" file="s3-operations.xml" />
 	<configuration doc:name="Configuration"
@@ -37,31 +55,26 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 		doc:name="Configuration properties"
 		doc:id="77d40699-0746-4cbf-a9b5-b9460b401894"
 		file="properties/config-${mule.env}.yaml" />
-		<aws-secrets-manager-properties-override:config name="aws-secrets-manager-properties-override-config" doc:name="AWS Secrets Manager Properties Override Config" doc:id="19dfa118-9026-462e-b01a-754dfafc6a1a" >
-		<aws-secrets-manager-properties-override:basic-connection region="us-east-1" accessKey="${awsSecretsAccessKey}" secretKey="${awsSecretsAccessSecret}" />
+	<aws-secrets-manager-properties-override:config
+		name="aws-secrets-manager-properties-override-config"
+		doc:name="AWS Secrets Manager Properties Override Config"
+		doc:id="19dfa118-9026-462e-b01a-754dfafc6a1a">
+		<aws-secrets-manager-properties-override:basic-connection
+			region="us-east-1" accessKey="${awsSecretsAccessKey}"
+			secretKey="${awsSecretsAccessSecret}" />
 	</aws-secrets-manager-properties-override:config>
 	<configuration-properties
 		doc:name="Configuration properties"
 		doc:id="dd661869-d2fe-461c-85f2-4dd2c7f7243f"
 		file="properties\common\common.yaml" />
-	<!-- <api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" 
-		doc:name="API Autodiscovery" doc:id="4edcc4f1-e1b8-4116-bd34-559f50c97ce0" 
-		flowRef="development-template-main" /> -->
-	<http:listener-config
-		name="cs-feedback-loop-http-listener-config"
-		doc:name="HTTP Listener config"
-		doc:id="894a0492-33c6-42a3-b67c-4bd112c8d1cf">
-		<http:listener-connection host="${http.host}"
-			port="${http.port}" readTimeout="${http.readTimeout}" connectionIdleTimeout="1200000">
-			<reconnection />
-		</http:listener-connection>
-	</http:listener-config>
-		<http:request-config
+
+	<http:request-config
 		name="http-request-configuration" doc:name="HTTP Request config"
 		doc:id="e2dc4a74-f7ab-4b9b-b850-05170e83df87"
 		basePath="#[vars.httpOperation.basePath]" sendCorrelationId="ALWAYS"
 		responseTimeout="#[vars.httpOperation.responseTimeout]">
-		<http:request-connection host="#[vars.httpOperation.host]" protocol="HTTPS"/>
+		<http:request-connection
+			host="#[vars.httpOperation.host]" protocol="HTTPS" />
 	</http:request-config>
 	<ms-bedrock:config
 		name="amazon-bedrock-configuration"
@@ -69,8 +82,8 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 		doc:id="32c4ef63-55b5-4c34-9573-f942b5c8cc26">
 		<ms-bedrock:basic-connection
 			accessKey="#[read(p('aws-secrets::aws-bedrock-credentials'),&quot;application/json&quot;).bedrockAccessKey]"
-			secretKey="#[read(p('aws-secrets::aws-bedrock-credentials'),&quot;application/json&quot;).bedrockSecretKey]" >
-			<reconnection >
+			secretKey="#[read(p('aws-secrets::aws-bedrock-credentials'),&quot;application/json&quot;).bedrockSecretKey]">
+			<reconnection>
 				<reconnect frequency="3000" count="3" />
 			</reconnection>
 		</ms-bedrock:basic-connection>
@@ -81,22 +94,24 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 	<global-property doc:name="Global Property"
 		doc:id="e9e9d55f-0b6f-459f-b0bd-c48934a86f23"
 		name="awsSecretsAccessSecret" value="placeholder" />
-		
+
 	<outlook365:outlook365-config
 		name="Outlook365_Outlook365_Config"
 		doc:name="Outlook365 Outlook365 Config"
 		doc:id="fb7050b7-f5c0-4422-8b25-eb44676d5054">
 		<outlook365:oauth-client-credentials-connection>
 			<outlook365:oauth-client-credentials
-				clientId="${outlookId}"
-				clientSecret="${outlookSecret}"
+				clientId="${outlookId}" clientSecret="${outlookSecret}"
 				tokenUrl="${outlook.tokenUrl}"
 				scopes="https://graph.microsoft.com/.default" />
 		</outlook365:oauth-client-credentials-connection>
 	</outlook365:outlook365-config>
-	<global-property doc:name="Global Property" doc:id="fcf72c0b-434c-4737-aead-ddb99da8ae82" name="outlookId" value="12345678" />
-	<global-property doc:name="Global Property" doc:id="788e41f5-2707-40a7-8cb2-e82220765623" name="outlookSecret" value="12345" />
-	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="5c60102c-3096-4e5b-b5a3-c9d5641680f7" flowRef="cs-feeback-loop-papi-main"/>
-
+	<global-property doc:name="Global Property"
+		doc:id="fcf72c0b-434c-4737-aead-ddb99da8ae82" name="outlookId"
+		value="12345678" />
+	<global-property doc:name="Global Property"
+		doc:id="788e41f5-2707-40a7-8cb2-e82220765623" name="outlookSecret"
+		value="12345" />
 	
+
 </mule>

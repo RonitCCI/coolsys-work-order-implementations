@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
@@ -107,13 +105,6 @@
 		</dependency>
 		<dependency>
 			<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
-			<artifactId>cs-feeback-loop-papi</artifactId>
-			<version>1.0.0</version>
-			<classifier>raml</classifier>
-			<type>zip</type>
-		</dependency>
-		<dependency>
-			<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
 			<artifactId>cs-aws-s3-operations-v1</artifactId>
 			<version>1.0.1</version>
 			<classifier>mule-plugin</classifier>
@@ -159,6 +150,13 @@
 			<artifactId>mule-amazon-s3-connector</artifactId>
 			<version>8.0.2</version>
 			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>36cd1ce8-e608-4255-875d-0b7eb18519cd</groupId>
+			<artifactId>cs-feeback-loop-papi</artifactId>
+			<version>1.0.1</version>
+			<classifier>raml</classifier>
+			<type>zip</type>
 		</dependency>
 	</dependencies>
 

@@ -23,9 +23,7 @@
 		</http:listener>
 		<apikit:router config-ref="cs-feeback-loop-papi-config" />
 	</flow>
-
 	<flow name="get:\feedbackLoop:cs-feeback-loop-papi-config">
-
 		<ee:transform doc:name="Set Response Payload">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
@@ -36,18 +34,16 @@ output application/json
 	"message": "The Feedback Loop pipeline has been triggered successfully and is running in the background.",
 	"correlationId": correlationId,
 	'timestamp': now()
-}
-                ]]></ee:set-payload>
+}]]></ee:set-payload>
 			</ee:message>
-			<ee:variables >
-				<ee:set-variable variableName="httpStatus" ><![CDATA[202]]></ee:set-variable>
+			<ee:variables>
+				<ee:set-variable variableName="httpStatus"><![CDATA[202]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
-
-
 		<async doc:name="Async - Run Pipeline">
-			<flow-ref doc:name='embedding-pipeline-scheduler-flow'
-				doc:id="dcc83c42-6e5f-480f-96cf-4f19a78e7a01" name="embedding-pipeline-scheduler-flow"/>
+			<flow-ref doc:name="embedding-pipeline-scheduler-flow"
+				doc:id="dcc83c42-6e5f-480f-96cf-4f19a78e7a01"
+				name="embedding-pipeline-scheduler-flow" />
 		</async>
 	</flow>
 </mule>

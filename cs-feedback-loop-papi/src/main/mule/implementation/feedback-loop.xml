@@ -20,13 +20,6 @@
 	<os:object-store name="S3_Keys_Object_Store"
 		entryTtl="1" entryTtlUnit="DAYS" doc:name="Object store for S3 keys" />
 
-	<http:request-config
-		name="database-sapi-request-config" basePath="/api/v1/database"
-		doc:name="Database System API — HTTP Request Configuration">
-		<http:request-connection host="localhost"
-			port="8082" />
-	</http:request-config>
-
 	<flow name="embedding-pipeline-scheduler-flow"
 		doc:name="HVAC Pipeline — Daily Scheduler"
 		doc:id="48f2babc-2fca-439d-96f6-c5aa0328b4b2">
@@ -723,7 +716,9 @@ Mule::p('s3.bucketName')]]></ee:set-variable>
 					doc:id="62f23656-4113-4cd5-9e4f-0379a2b740af" />
 			</batch:on-complete>
 		</batch:job>
-		<logger level="INFO" doc:name="END" doc:id="636a520b-5a69-4ada-8aaf-8d75f5665c53" message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
+		<logger level="INFO" doc:name="END"
+			doc:id="636a520b-5a69-4ada-8aaf-8d75f5665c53"
+			message="#[%dw 2.0 output application/json --- { 'correlationId': vars.correlationId default correlationId, 'appName': app.name, 'flow': flow.name, 'message': 'End of flow ' ++ flow.name, 'timestamp': now() }]" />
 	</flow>
 
 	<sub-flow name="seed-hvac-materials-flow"
